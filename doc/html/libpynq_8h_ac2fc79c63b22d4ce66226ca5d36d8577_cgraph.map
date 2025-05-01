@@ -1,0 +1,8 @@
+<map id="pynq_destroy" name="pynq_destroy">
+<area shape="rect" id="node1" title="Reset and destroy the switchbox and GPIO of the PYNQ." alt="" coords="5,81,116,108"/>
+<area shape="rect" id="node2" href="$group__GPIO.html#gade823711d8824fe39b22677239c87c1d" title=" " alt="" coords="183,5,289,32"/>
+<area shape="rect" id="node4" href="$group__GPIO.html#ga50c7fd3ea0ff2a823de87a74c19ffb1e" title="Reset all IO pins." alt="" coords="191,56,281,83"/>
+<area shape="rect" id="node5" href="$group__SWITCHBOX.html#ga3287b962efdc35dce05a4c0a6d899e61" title="Resets all pins of the switch box to be input." alt="" coords="164,107,308,133"/>
+<area shape="rect" id="node6" href="$group__SWITCHBOX.html#ga74a66c9d9da08623ed4698e4ba7978a6" title="Resets all pins of the switch box to be input." alt="" coords="172,157,300,184"/>
+<area shape="rect" id="node3" href="$group__ARMSHARED.html#ga12c3557dfcb0ebbf3386b52068c56618" title=" " alt="" coords="356,56,496,83"/>
+</map>

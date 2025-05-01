@@ -1,0 +1,4 @@
+<map id="displayDrawChar" name="displayDrawChar">
+<area shape="rect" id="node1" title="Draws a character on the given coordinates of the display." alt="" coords="195,5,328,32"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#ga0cf83239824624d1a311a74613194ad0" title="Function to draw a string on the display." alt="" coords="5,5,147,32"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="switchbox_set_pin" name="switchbox_set_pin">
+<area shape="rect" id="node1" title="Set the type of a switch pin." alt="" coords="460,5,603,32"/>
+<area shape="rect" id="node2" href="$display_8c.html#a1896cc8b3dbceaf375a73e39b3779734" title=" " alt="" coords="289,5,412,32"/>
+<area shape="rect" id="node3" href="$display_8c.html#a0b45648ee09abc34633a3e826fba639a" title=" " alt="" coords="151,5,241,32"/>
+<area shape="rect" id="node4" href="$group__DISPLAY.html#ga63290b40f423efdea8918393f7dad591" title="Initialize the display display." alt="" coords="5,5,103,32"/>
+</map>

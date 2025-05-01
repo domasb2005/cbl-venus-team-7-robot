@@ -1,0 +1,4 @@
+<map id="gpio_ack_interrupt" name="gpio_ack_interrupt">
+<area shape="rect" id="node1" title="acknowledges the raised interrupts and resets the interrupt word. Allows new interrupts to occur on t..." alt="" coords="5,5,148,32"/>
+<area shape="rect" id="node2" href="$interrupt_8c.html#a9b67e3d1a1cb47210459207e80747ad1" title=" " alt="" coords="196,5,344,32"/>
+</map>

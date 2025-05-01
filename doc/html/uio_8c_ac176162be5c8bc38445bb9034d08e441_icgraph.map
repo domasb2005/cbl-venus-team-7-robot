@@ -1,0 +1,10 @@
+<map id="setUIO" name="setUIO">
+<area shape="rect" id="node1" title=" " alt="" coords="225,157,292,184"/>
+<area shape="rect" id="node2" href="$group__AUDIO.html#ga5fee8d77c208512f18f4273213520249" title="Record and play the audio without storing in DRAM." alt="" coords="36,5,147,32"/>
+<area shape="rect" id="node3" href="$group__AUDIO.html#ga061d146b990619c8f7ebd37ee18cbe23" title=" " alt="" coords="12,56,171,83"/>
+<area shape="rect" id="node4" href="$group__AUDIO.html#ga52d0f4ea75ee4d027430bb25a2f8b7a9" title=" " alt="" coords="45,107,138,133"/>
+<area shape="rect" id="node5" href="$group__AUDIO.html#ga1d91ff881ec020a63e36e4f285622b80" title="Function to support audio recording without the audio codec controller." alt="" coords="38,157,145,184"/>
+<area shape="rect" id="node6" href="$group__AUDIO.html#gae570f6615745d48d3fbb0bdd30195a27" title=" " alt="" coords="5,208,177,235"/>
+<area shape="rect" id="node7" href="$group__AUDIO.html#ga4ee83180ef77ba88e6426f8eb6f197ef" title=" " alt="" coords="5,259,177,301"/>
+<area shape="rect" id="node8" href="$group__AUDIO.html#ga4b430bbc9a47b8160f2596cc625683ff" title="Function to play one audio fragment for multiple repititions." alt="" coords="20,325,163,352"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="read_audio_reg" name="read_audio_reg">
+<area shape="rect" id="node1" title=" " alt="" coords="316,5,439,32"/>
+<area shape="rect" id="node2" href="$group__AUDIO.html#ga9c9de79126611d05d3e2bda897ca886e" title=" " alt="" coords="140,5,268,32"/>
+<area shape="rect" id="node3" href="$group__AUDIO.html#ga780026a09284372732eeca5c1bdeda0b" title="Initializes the audio register. Sets the sampling frequency. defines several values such as audio rec..." alt="" coords="5,5,92,32"/>
+</map>

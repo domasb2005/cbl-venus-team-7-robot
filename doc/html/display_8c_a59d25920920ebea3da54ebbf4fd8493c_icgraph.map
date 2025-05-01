@@ -1,0 +1,24 @@
+<map id="spi_master_write_command" name="spi_master_write_command">
+<area shape="rect" id="node1" title=" " alt="" coords="663,208,869,235"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#ga10ab8b136075cbc18b78bcc908065f7b" title="Flip the drawing off the screen." alt="" coords="465,157,589,184"/>
+<area shape="rect" id="node4" href="$group__DISPLAY.html#ga780fc9d0cab6ce28cc16407406cdc80e" title="Turn off the display." alt="" coords="458,56,597,83"/>
+<area shape="rect" id="node5" href="$group__DISPLAY.html#gad11fe33a674394cb12a805d9327a3e64" title="Initialize DISPLAY screen." alt="" coords="459,107,595,133"/>
+<area shape="rect" id="node6" href="$group__DISPLAY.html#ga1c1688930e03cde2e24c29ad420997ba" title="Draw a filled rectangle to the display." alt="" coords="452,259,603,285"/>
+<area shape="rect" id="node10" href="$display_8c.html#adf526f5ef51e463fe18207554e4a1b4d" title=" " alt="" coords="440,208,615,235"/>
+<area shape="rect" id="node11" href="$group__DISPLAY.html#gaeae5a9ba9c5f7b780544cf28ce8c9eff" title="Draw a single pixel to the display." alt="" coords="460,309,595,336"/>
+<area shape="rect" id="node20" href="$display_8c.html#a0b45648ee09abc34633a3e826fba639a" title=" " alt="" coords="482,5,573,32"/>
+<area shape="rect" id="node21" href="$group__DISPLAY.html#ga81b523ca85946eeb59d50ab869cdafc0" title="Turn off inversion of the colors." alt="" coords="453,360,602,387"/>
+<area shape="rect" id="node22" href="$group__DISPLAY.html#ga89538efeb5ef838358b0b46f63921a90" title="Turn on inversion of the colors." alt="" coords="454,411,601,437"/>
+<area shape="rect" id="node3" href="$group__DISPLAY.html#ga63290b40f423efdea8918393f7dad591" title="Initialize the display display." alt="" coords="273,81,371,108"/>
+<area shape="rect" id="node7" href="$group__DISPLAY.html#ga8a92d604ad9c6f72684a0d0679cb04bf" title="Draws a character on the given coordinates of the display." alt="" coords="255,259,389,285"/>
+<area shape="rect" id="node9" href="$group__DISPLAY.html#gac8caa3499c1a3f4a26dccfb839ba0255" title="Fill entire display with a single color using the ldcDrawFillRect function." alt="" coords="257,208,387,235"/>
+<area shape="rect" id="node8" href="$group__DISPLAY.html#ga0cf83239824624d1a311a74613194ad0" title="Function to draw a string on the display." alt="" coords="34,183,175,209"/>
+<area shape="rect" id="node12" href="$group__DISPLAY.html#gab324776dd38a2a66365ddc20172c6fcb" title="Draw a circle without infill on the display." alt="" coords="252,309,392,336"/>
+<area shape="rect" id="node13" href="$group__DISPLAY.html#ga80ea5d257614d01bf5cda9a630768dbb" title="Draw a line from two coordinates." alt="" coords="257,360,387,387"/>
+<area shape="rect" id="node17" href="$group__DISPLAY.html#ga84dba9b6c5b9684448c7bb8823d0907d" title="Draw a rectangle with rounded angles." alt="" coords="18,487,191,513"/>
+<area shape="rect" id="node14" href="$group__DISPLAY.html#gafa1ff5f384f54a67f926e199ff818114" title="Draw a circle with infill on the display." alt="" coords="25,335,184,361"/>
+<area shape="rect" id="node15" href="$group__DISPLAY.html#ga56176a770a264c0d2de17a0d5b6ba1fa" title="Draw a filled rectangle." alt="" coords="39,385,171,412"/>
+<area shape="rect" id="node16" href="$group__DISPLAY.html#gaf018a8da224cefed55444294209768af" title="Draws a rectangle with rounded corners at a specified angle on the display." alt="" coords="20,436,189,463"/>
+<area shape="rect" id="node18" href="$group__DISPLAY.html#ga4be3f426f9b3f5a2eeb5aca6997804c7" title="Draw a triangle without infill between the three given points in the given color." alt="" coords="27,233,182,260"/>
+<area shape="rect" id="node19" href="$group__DISPLAY.html#gafaaa5373cd6d91adfcde95f18aabef77" title="Draws a triangle at a specified angle on the display." alt="" coords="5,284,204,311"/>
+</map>

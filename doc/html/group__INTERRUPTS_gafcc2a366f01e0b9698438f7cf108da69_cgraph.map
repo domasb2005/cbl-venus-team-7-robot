@@ -1,0 +1,4 @@
+<map id="gpio_disable_interrupt" name="gpio_disable_interrupt">
+<area shape="rect" id="node1" title="Disables interrupts from occuring on the specific pin. Hereafter, the pin will not trigger an interru..." alt="" coords="5,5,172,32"/>
+<area shape="rect" id="node2" href="$interrupt_8c.html#a9b67e3d1a1cb47210459207e80747ad1" title=" " alt="" coords="220,5,368,32"/>
+</map>

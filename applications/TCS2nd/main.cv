@@ -1,0 +1,256 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h> // For sleep()
+#include <libpynq.h>
+#include <time.h>   // For high-resolution timing
+
+// --- Pin Definitions (Modify according to your connections) ---
+// Using Arduino Header Pins (D0-D4) as an example
+#define PIN_S0 IO_AR11 // Pin connected to TCS230 S0
+#define PIN_S1 IO_AR12 // Pin connected to TCS230 S1
+#define PIN_S2 IO_AR8 // Pin connected to TCS230 S2
+#define PIN_S3 IO_AR9 // Pin connected to TCS230 S3
+#define PIN_OUT IO_AR7 // Pin connected to TCS230 OUTp
+
+// --- TCS230 Control Definitions ---
+// Frequency Scaling
+#define FREQ_SCALE_2   0 // S0=L, S1=H (2%)
+#define FREQ_SCALE_20  1 // S0=H, S1=L (20%)
+#define FREQ_SCALE_100 2 // S0=H, S1=H (100%)
+#define FREQ_SCALE_OFF 3 // S0=L, S1=L (Power Down)
+
+int fs=FREQ_SCALE_2;
+
+// Color Filters
+#define FILTER_RED    0 // S2=L, S3=L
+#define FILTER_BLUE   1 // S2=L, S3=H
+#define FILTER_CLEAR  2 // S2=H, S3=L (No filter)
+#define FILTER_GREEN  3 // S2=H, S3=H
+// --- Global Calibration Variables ---
+double cal_r = 1.0; // Default to 1.0 to avoid division by zero if calibration fails
+double cal_g = 1.0;
+double cal_b = 1.0;
+
+// --- Function Prototypes ---
+void setFrequencyScaling(int scale);
+void setColorFilter(int color);
+double readFrequency(int num_pulses);
+long long timespec_diff_ns(struct timespec start, struct timespec end);
+void calibrateSensor(void); // <-- Add prototype for calibration function
+
+int main(void) {
+    FILE *fout = fopen("color_calibration.csv", "w");
+    if (!fout) {
+        perror("Failed to open output file");
+        return EXIT_FAILURE;
+    }
+
+    pynq_init();
+    gpio_init();
+
+    gpio_set_direction(PIN_S0, GPIO_DIR_OUTPUT);
+    gpio_set_direction(PIN_S1, GPIO_DIR_OUTPUT);
+    gpio_set_direction(PIN_S2, GPIO_DIR_OUTPUT);
+    gpio_set_direction(PIN_S3, GPIO_DIR_OUTPUT);
+    gpio_set_direction(PIN_OUT, GPIO_DIR_INPUT);
+
+    setFrequencyScaling(fs);
+
+    calibrateSensor(); // White balance
+
+    fprintf(fout, "Color,Sample,Raw_R,Raw_G,Raw_B,Norm_R,Norm_G,Norm_B\n");
+
+    const char* colors[] = { "RED", "GREEN", "BLUE", "BLACK", "WHITE" };
+
+    for (int c = 0; c < 5; ++c) {
+        printf("\nPlace the sensor against the %s cube and press Enter...", colors[c]);
+        getchar();
+
+        for (int i = 0; i < 5; ++i) {
+            setColorFilter(FILTER_RED); sleep_msec(200);
+            double r = readFrequency(100);
+
+            setColorFilter(FILTER_GREEN); sleep_msec(200);
+            double g = readFrequency(100);
+
+            setColorFilter(FILTER_BLUE); sleep_msec(200);
+            double b = readFrequency(100);
+
+            double nr = r / cal_r;
+            double ng = g / cal_g;
+            double nb = b / cal_b;
+
+            printf("%s Sample %d: Raw: R=%.2f G=%.2f B=%.2f | Normalized: R=%.3f G=%.3f B=%.3f\n",
+                   colors[c], i+1, r, g, b, nr, ng, nb);
+
+            fprintf(fout, "%s,%d,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\n",
+                    colors[c], i+1, r, g, b, nr, ng, nb);
+
+            sleep(1);
+        }
+    }
+
+    fclose(fout);
+    printf("\nCalibration data saved to color_calibration.csv\n");
+    pynq_destroy();
+    return 0;
+}
+// --- Function Implementations ---
+
+// Set the output frequency scaling
+void setFrequencyScaling(int scale) {
+    switch (scale) {
+        case FREQ_SCALE_2:   // 2%
+            gpio_set_level(PIN_S0, GPIO_LEVEL_LOW);
+            gpio_set_level(PIN_S1, GPIO_LEVEL_HIGH);
+            break;
+        case FREQ_SCALE_20:  // 20%
+            gpio_set_level(PIN_S0, GPIO_LEVEL_HIGH);
+            gpio_set_level(PIN_S1, GPIO_LEVEL_LOW);
+            break;
+        case FREQ_SCALE_100: // 100%
+            gpio_set_level(PIN_S0, GPIO_LEVEL_HIGH);
+            gpio_set_level(PIN_S1, GPIO_LEVEL_HIGH);
+            break;
+        case FREQ_SCALE_OFF: // Power Down
+        default:
+            gpio_set_level(PIN_S0, GPIO_LEVEL_LOW);
+            gpio_set_level(PIN_S1, GPIO_LEVEL_LOW);
+            break;
+    }
+}
+
+// Set the color filter
+void setColorFilter(int color) {
+    switch (color) {
+        case FILTER_RED:    // Red
+            gpio_set_level(PIN_S2, GPIO_LEVEL_LOW);
+            gpio_set_level(PIN_S3, GPIO_LEVEL_LOW);
+            break;
+        case FILTER_BLUE:   // Blue
+            gpio_set_level(PIN_S2, GPIO_LEVEL_LOW);
+            gpio_set_level(PIN_S3, GPIO_LEVEL_HIGH);
+            break;
+        case FILTER_CLEAR:  // Clear
+            gpio_set_level(PIN_S2, GPIO_LEVEL_HIGH);
+            gpio_set_level(PIN_S3, GPIO_LEVEL_LOW);
+            break;
+        case FILTER_GREEN:  // Green
+        default:
+            gpio_set_level(PIN_S2, GPIO_LEVEL_HIGH);
+            gpio_set_level(PIN_S3, GPIO_LEVEL_HIGH);
+            break;
+    }
+}
+
+// Calculate difference between two timespecs in nanoseconds
+// ... existing code ...
+long long timespec_diff_ns(struct timespec start, struct timespec end) {
+    return (end.tv_sec - start.tv_sec) * 1000000000LL + (end.tv_nsec - start.tv_nsec);
+}
+
+// --- Calibrate Sensor for White Balance ---
+void calibrateSensor(void) {
+    const int num_cal_readings = 5; // Number of readings to average for calibration
+    double temp_r_sum = 0, temp_g_sum = 0, temp_b_sum = 0;
+
+    printf("\n--- Sensor Calibration ---\n");
+    printf("Place a white object directly in front of the sensor.\n");
+    printf("Press Enter when ready...");
+    getchar(); // Wait for user input
+
+    printf("Calibrating...\n");
+
+    for (int i = 0; i < num_cal_readings; ++i) {
+        // Read Red
+        setColorFilter(FILTER_RED);
+        sleep_msec(50); // Allow time for filter change
+        temp_r_sum += readFrequency(100);
+
+        // Read Green
+        setColorFilter(FILTER_GREEN);
+        sleep_msec(50);
+        temp_g_sum += readFrequency(100);
+
+        // Read Blue
+        setColorFilter(FILTER_BLUE);
+        sleep_msec(50);
+        temp_b_sum += readFrequency(100);
+
+        printf("."); // Progress indicator
+        fflush(stdout); // Make sure the dot appears immediately
+        sleep_msec(100); // Small delay between readings
+    }
+    printf("\n");
+
+    // Calculate average calibration values
+    cal_r = temp_r_sum / num_cal_readings;
+    cal_g = temp_g_sum / num_cal_readings;
+    cal_b = temp_b_sum / num_cal_readings;
+
+    // Ensure calibration values are not zero to prevent division by zero later
+    if (cal_r <= 0) cal_r = 1.0;
+    if (cal_g <= 0) cal_g = 1.0;
+    if (cal_b <= 0) cal_b = 1.0;
+
+
+    printf("Calibration complete.\n");
+    printf("White Calibration Frequencies (Hz): R=%.2f, G=%.2f, B=%.2f\n\n", cal_r, cal_g, cal_b);
+    sleep(1); // Pause briefly
+}
+
+
+// Read frequency from the OUT pin by timing pulses
+// ... rest of readFrequency function ...
+
+// ... existing code ...
+
+// Read frequency from the OUT pin by timing pulses
+// Note: This polling method might be inaccurate for very high frequencies
+//       or if the system is under heavy load.
+double readFrequency(int num_pulses) {
+    if (num_pulses <= 0) return 0.0;
+
+    struct timespec start_time, end_time;
+    int pulse_count = 0;
+    gpio_level_t current_level, last_level;
+
+    // Wait for the first rising edge to start timing
+    last_level = gpio_get_level(PIN_OUT); // Use gpio_get_level instead of gpio_read
+    while (1) {
+        current_level = gpio_get_level(PIN_OUT); // Use gpio_get_level instead of gpio_read
+        if (current_level == GPIO_LEVEL_HIGH && last_level == GPIO_LEVEL_LOW) {
+            clock_gettime(CLOCK_MONOTONIC, &start_time); // Start timer on rising edge
+            last_level = current_level;
+            break;
+        }
+        last_level = current_level;
+        // Add a small delay or yield to prevent busy-waiting consuming 100% CPU
+        // usleep(1); // Might be too long, consider nanosleep or sched_yield if needed
+    }
+
+
+    // Count the specified number of rising edges
+    while (pulse_count < num_pulses) {
+        current_level = gpio_get_level(PIN_OUT); // Use gpio_get_level instead of gpio_read
+        if (current_level == GPIO_LEVEL_HIGH && last_level == GPIO_LEVEL_LOW) {
+            pulse_count++;
+        }
+        last_level = current_level;
+         // usleep(1); // Optional small delay
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &end_time); // Stop timer after N pulses
+
+    // Calculate elapsed time in seconds
+    long long elapsed_ns = timespec_diff_ns(start_time, end_time);
+    if (elapsed_ns <= 0) return 0.0; // Avoid division by zero or negative time
+
+    double elapsed_s = (double)elapsed_ns / 1e9;
+
+    // Calculate frequency
+    double frequency = (double)num_pulses / elapsed_s;
+
+    return frequency;
+}

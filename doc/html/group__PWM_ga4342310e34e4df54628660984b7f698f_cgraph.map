@@ -1,0 +1,4 @@
+<map id="pwm_get_steps" name="pwm_get_steps">
+<area shape="rect" id="node1" title="Get the number of steps a certain channel has taken so far." alt="" coords="5,5,129,32"/>
+<area shape="rect" id="node2" href="$pwm_8c.html#abcae3c5f25f1aec206ba8f64f0bed39e" title=" " alt="" coords="177,5,348,32"/>
+</map>

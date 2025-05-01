@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+echo GPIO:RST
+echo SWITCHBOX:RST
+echo SWITCHBOX:MAP RBPI40, PWM0
+echo SWITCHBOX:MAP RBPI38, PULSECOUNTER0 
+echo PWM0:STEPS 0
+echo PWM0:PERIOD 100000000
+echo PWM0:DUTY   100
+echo PWM0:STEPS -1
+
+echo PULSECOUNTER0:Reset
+echo PULSECOUNTER0:Edge High
+while sleep 1
+do
+    echo PULSECOUNTER0:Count?
+done

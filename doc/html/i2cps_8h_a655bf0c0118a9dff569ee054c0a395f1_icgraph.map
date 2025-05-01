@@ -1,0 +1,17 @@
+<map id="writeI2C_asFile" name="writeI2C_asFile">
+<area shape="rect" id="node1" title=" " alt="" coords="592,56,712,83"/>
+<area shape="rect" id="node2" href="$group__AUDIO.html#ga9c9de79126611d05d3e2bda897ca886e" title=" " alt="" coords="219,5,347,32"/>
+<area shape="rect" id="node4" href="$audio_8c.html#a543110eb76ac847e8be875e2cfb0fbc1" title=" " alt="" coords="419,56,542,83"/>
+<area shape="rect" id="node5" href="$group__AUDIO.html#ga3ec4d5593965dc8b93d40e80e2143902" title=" " alt="" coords="417,216,544,243"/>
+<area shape="rect" id="node3" href="$group__AUDIO.html#ga780026a09284372732eeca5c1bdeda0b" title="Initializes the audio register. Sets the sampling frequency. defines several values such as audio rec..." alt="" coords="34,165,121,192"/>
+<area shape="rect" id="node6" href="$group__AUDIO.html#ga5fee8d77c208512f18f4273213520249" title="Record and play the audio without storing in DRAM." alt="" coords="228,56,339,83"/>
+<area shape="rect" id="node7" href="$group__AUDIO.html#ga061d146b990619c8f7ebd37ee18cbe23" title=" " alt="" coords="204,107,363,133"/>
+<area shape="rect" id="node8" href="$group__AUDIO.html#ga52d0f4ea75ee4d027430bb25a2f8b7a9" title=" " alt="" coords="237,157,330,184"/>
+<area shape="rect" id="node9" href="$group__AUDIO.html#ga4ee83180ef77ba88e6426f8eb6f197ef" title=" " alt="" coords="197,209,369,250"/>
+<area shape="rect" id="node10" href="$group__AUDIO.html#ga4b430bbc9a47b8160f2596cc625683ff" title="Function to play one audio fragment for multiple repititions." alt="" coords="212,275,355,301"/>
+<area shape="rect" id="node11" href="$group__AUDIO.html#ga4c3476adecb27a3162fabab4af088f0b" title=" " alt="" coords="208,325,359,352"/>
+<area shape="rect" id="node12" href="$group__AUDIO.html#ga0ae77235b32f5522d5d881baf2c52210" title="Function to deselect input, either LINE_IN, or MIC." alt="" coords="245,376,322,403"/>
+<area shape="rect" id="node13" href="$group__AUDIO.html#gaec4645b89d23204e90f880d09da94525" title="Function to select LINE_IN as input." alt="" coords="228,427,339,453"/>
+<area shape="rect" id="node15" href="$group__AUDIO.html#ga2203ea82d55c60566ab868a82292aedf" title="Function to select MIC as input." alt="" coords="237,477,329,504"/>
+<area shape="rect" id="node14" href="$group__AUDIO.html#ga61af1e13a8f338966a17f07a518ef207" title="selects the audio input channel." alt="" coords="5,452,149,479"/>
+</map>

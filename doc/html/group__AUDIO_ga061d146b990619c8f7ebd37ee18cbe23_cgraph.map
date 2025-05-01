@@ -1,0 +1,9 @@
+<map id="audio_generate_tone" name="audio_generate_tone">
+<area shape="rect" id="node1" title=" " alt="" coords="5,107,164,133"/>
+<area shape="rect" id="node2" href="$i2cps_8c.html#a423d97e7bbc2c26785d9a5de31d2f220" title=" " alt="" coords="244,5,307,32"/>
+<area shape="rect" id="node3" href="$uio_8c.html#ac176162be5c8bc38445bb9034d08e441" title=" " alt="" coords="242,56,309,83"/>
+<area shape="rect" id="node4" href="$i2cps_8c.html#a8fbf09bd758928bc8f434d96957ec40f" title=" " alt="" coords="236,107,315,133"/>
+<area shape="rect" id="node5" href="$uio_8c.html#a59a8a2b5a485df4f125d7c4f71f48b6f" title=" " alt="" coords="234,157,317,184"/>
+<area shape="rect" id="node6" href="$group__AUDIO.html#ga3ec4d5593965dc8b93d40e80e2143902" title=" " alt="" coords="212,208,339,235"/>
+<area shape="rect" id="node7" href="$i2cps_8c.html#a655bf0c0118a9dff569ee054c0a395f1" title=" " alt="" coords="387,208,507,235"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="gpio_get_level" name="gpio_get_level">
+<area shape="rect" id="node1" title="Return the level of the IO pin." alt="" coords="164,5,281,32"/>
+<area shape="rect" id="node2" href="$group__UTIL.html#gad14cbdc178718d358180c9a1cf83cfc0" title="Displays a table to see where all pins have been mapped, what channels have been linked where and the..." alt="" coords="5,5,116,32"/>
+</map>

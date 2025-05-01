@@ -1,0 +1,11 @@
+<map id="pynq_init" name="pynq_init">
+<area shape="rect" id="node1" title="Initialise the switchbox and GPIO of the PYNQ." alt="" coords="5,180,88,207"/>
+<area shape="rect" id="node2" href="$group__GPIO.html#gafdbe206b3c49f019757ab09b3cf52b9c" title=" " alt="" coords="161,155,239,182"/>
+<area shape="rect" id="node7" href="$group__GPIO.html#ga50c7fd3ea0ff2a823de87a74c19ffb1e" title="Reset all IO pins." alt="" coords="155,206,245,232"/>
+<area shape="rect" id="node8" href="$group__SWITCHBOX.html#gaa08d84687c6b7fcfae8d1ea0e067306f" title="Initializes the switch box." alt="" coords="142,104,258,131"/>
+<area shape="rect" id="node9" href="$group__SWITCHBOX.html#ga74a66c9d9da08623ed4698e4ba7978a6" title="Resets all pins of the switch box to be input." alt="" coords="136,256,264,283"/>
+<area shape="rect" id="node3" href="$group__ARMSHARED.html#gab5254fff75e33f677c5a4b0c0f401f10" title=" " alt="" coords="636,92,763,119"/>
+<area shape="rect" id="node4" href="$group__VERSION.html#ga4ab7d615706bed1f5785b78a216b6615" title=" " alt="" coords="312,79,427,106"/>
+<area shape="rect" id="node5" href="$group__ARMSHARED.html#ga12c3557dfcb0ebbf3386b52068c56618" title=" " alt="" coords="629,16,769,43"/>
+<area shape="rect" id="node6" href="$group__VERSION.html#gac6230d495fc909bb61195c45f703d492" title=" " alt="" coords="475,28,581,55"/>
+</map>

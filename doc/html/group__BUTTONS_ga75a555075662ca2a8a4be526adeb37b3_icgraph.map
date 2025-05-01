@@ -1,0 +1,5 @@
+<map id="wait_until_button_state" name="wait_until_button_state">
+<area shape="rect" id="node1" title="Wait until the given button is in state (which may be immediately)." alt="" coords="252,31,427,57"/>
+<area shape="rect" id="node2" href="$group__BUTTONS.html#ga1635729112b5af83feee6a4255cc2373" title="Wait until the given button is pushed (which may be immediately)." alt="" coords="10,5,199,32"/>
+<area shape="rect" id="node3" href="$group__BUTTONS.html#gaa3646a1a39ebd3d5d8f375c4352e4d8b" title="Wait until the given button is not pushed (which may be immediately)." alt="" coords="5,56,204,83"/>
+</map>

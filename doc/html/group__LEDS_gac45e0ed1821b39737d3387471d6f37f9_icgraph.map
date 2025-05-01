@@ -1,0 +1,5 @@
+<map id="green_led_onoff" name="green_led_onoff">
+<area shape="rect" id="node1" title=" " alt="" coords="164,31,291,57"/>
+<area shape="rect" id="node2" href="$group__LEDS.html#ga2f369349851e22f870bd49d595aa507a" title="Same as green_led_onoff(led, LED_OFF). Works in all modes." alt="" coords="5,5,116,32"/>
+<area shape="rect" id="node3" href="$group__LEDS.html#ga69206476c2ae37f7c29525a318ef79cd" title="Same as green_led_onoff(led, LED_ON). Works in all modes." alt="" coords="6,56,115,83"/>
+</map>

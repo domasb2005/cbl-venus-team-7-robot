@@ -1,0 +1,6 @@
+<map id="spi_master_write_data_byte" name="spi_master_write_data_byte">
+<area shape="rect" id="node1" title=" " alt="" coords="323,31,529,57"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#ga10ab8b136075cbc18b78bcc908065f7b" title="Flip the drawing off the screen." alt="" coords="151,5,275,32"/>
+<area shape="rect" id="node4" href="$display_8c.html#a0b45648ee09abc34633a3e826fba639a" title=" " alt="" coords="167,56,258,83"/>
+<area shape="rect" id="node3" href="$group__DISPLAY.html#ga63290b40f423efdea8918393f7dad591" title="Initialize the display display." alt="" coords="5,31,103,57"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="gpio_enable_interrupt" name="gpio_enable_interrupt">
+<area shape="rect" id="node1" title="enables a specific pin to raise interrupts." alt="" coords="5,5,169,32"/>
+<area shape="rect" id="node2" href="$interrupt_8c.html#a9b67e3d1a1cb47210459207e80747ad1" title=" " alt="" coords="217,5,365,32"/>
+</map>

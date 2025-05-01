@@ -1,0 +1,1 @@
+FRESPONSE:Ping? 1000, 100

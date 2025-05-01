@@ -1,0 +1,7 @@
+<map id="gpio_wait_for_interrupt" name="gpio_wait_for_interrupt">
+<area shape="rect" id="node1" title="Waits untill an interrupt occurs on the specified pin or if the value of pin is larger than 63,..." alt="" coords="5,56,179,83"/>
+<area shape="rect" id="node2" href="$interrupt_8c.html#a9b67e3d1a1cb47210459207e80747ad1" title=" " alt="" coords="453,5,601,32"/>
+<area shape="rect" id="node3" href="$group__INTERRUPTS.html#ga3de3083b8861662945352b938c5f86c3" title=" " alt="" coords="245,31,387,57"/>
+<area shape="rect" id="node4" href="$group__UTIL.html#gaa8a2a52c0967dcf48e8ff578ead12813" title="Wait for msec milliseconds." alt="" coords="267,81,365,108"/>
+<area shape="rect" id="node5" href="$group__INTERRUPTS.html#ga9e524c3f7cef13eef906cd52e7867d43" title="Checks for error in enabled pin. Terminates the process if the pin is not enabled." alt="" coords="227,132,405,159"/>
+</map>

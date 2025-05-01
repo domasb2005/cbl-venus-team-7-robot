@@ -1,0 +1,15 @@
+<map id="write_audio_reg" name="write_audio_reg">
+<area shape="rect" id="node1" title=" " alt="" coords="417,249,544,276"/>
+<area shape="rect" id="node2" href="$group__AUDIO.html#ga5fee8d77c208512f18f4273213520249" title="Record and play the audio without storing in DRAM." alt="" coords="228,5,339,32"/>
+<area shape="rect" id="node3" href="$group__AUDIO.html#ga061d146b990619c8f7ebd37ee18cbe23" title=" " alt="" coords="204,56,363,83"/>
+<area shape="rect" id="node4" href="$group__AUDIO.html#ga52d0f4ea75ee4d027430bb25a2f8b7a9" title=" " alt="" coords="237,107,330,133"/>
+<area shape="rect" id="node5" href="$group__AUDIO.html#ga4ee83180ef77ba88e6426f8eb6f197ef" title=" " alt="" coords="197,158,369,199"/>
+<area shape="rect" id="node6" href="$group__AUDIO.html#ga4b430bbc9a47b8160f2596cc625683ff" title="Function to play one audio fragment for multiple repititions." alt="" coords="212,224,355,251"/>
+<area shape="rect" id="node7" href="$group__AUDIO.html#ga4c3476adecb27a3162fabab4af088f0b" title=" " alt="" coords="208,275,359,301"/>
+<area shape="rect" id="node9" href="$group__AUDIO.html#ga9c9de79126611d05d3e2bda897ca886e" title=" " alt="" coords="219,325,347,352"/>
+<area shape="rect" id="node10" href="$group__AUDIO.html#ga0ae77235b32f5522d5d881baf2c52210" title="Function to deselect input, either LINE_IN, or MIC." alt="" coords="245,376,322,403"/>
+<area shape="rect" id="node11" href="$group__AUDIO.html#gaec4645b89d23204e90f880d09da94525" title="Function to select LINE_IN as input." alt="" coords="228,427,339,453"/>
+<area shape="rect" id="node13" href="$group__AUDIO.html#ga2203ea82d55c60566ab868a82292aedf" title="Function to select MIC as input." alt="" coords="237,477,329,504"/>
+<area shape="rect" id="node8" href="$group__AUDIO.html#ga780026a09284372732eeca5c1bdeda0b" title="Initializes the audio register. Sets the sampling frequency. defines several values such as audio rec..." alt="" coords="34,300,121,327"/>
+<area shape="rect" id="node12" href="$group__AUDIO.html#ga61af1e13a8f338966a17f07a518ef207" title="selects the audio input channel." alt="" coords="5,452,149,479"/>
+</map>

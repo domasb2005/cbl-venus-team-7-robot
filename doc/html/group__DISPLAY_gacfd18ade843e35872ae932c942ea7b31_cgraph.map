@@ -1,0 +1,4 @@
+<map id="displayBacklightOff" name="displayBacklightOff">
+<area shape="rect" id="node1" title="Turn off the display backlight." alt="" coords="5,5,156,32"/>
+<area shape="rect" id="node2" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="204,5,320,32"/>
+</map>

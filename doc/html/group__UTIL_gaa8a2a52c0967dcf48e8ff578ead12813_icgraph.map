@@ -1,0 +1,6 @@
+<map id="sleep_msec" name="sleep_msec">
+<area shape="rect" id="node1" title="Wait for msec milliseconds." alt="" coords="372,31,471,57"/>
+<area shape="rect" id="node2" href="$display_8c.html#a0b45648ee09abc34633a3e826fba639a" title=" " alt="" coords="192,5,283,32"/>
+<area shape="rect" id="node4" href="$group__INTERRUPTS.html#ga6e66cc1be1c1edf57d663aaee8a66784" title="Waits untill an interrupt occurs on the specified pin or if the value of pin is larger than 63,..." alt="" coords="151,56,324,83"/>
+<area shape="rect" id="node3" href="$group__DISPLAY.html#ga63290b40f423efdea8918393f7dad591" title="Initialize the display display." alt="" coords="5,5,103,32"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="displayDisplayOff" name="displayDisplayOff">
+<area shape="rect" id="node1" title="Turn off the display." alt="" coords="5,31,144,57"/>
+<area shape="rect" id="node2" href="$display_8c.html#a59d25920920ebea3da54ebbf4fd8493c" title=" " alt="" coords="192,31,399,57"/>
+<area shape="rect" id="node3" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="447,5,563,32"/>
+<area shape="rect" id="node4" href="$display_8c.html#a2e84550a5ec7d45e5253d8e82523fe31" title=" " alt="" coords="457,56,553,83"/>
+</map>

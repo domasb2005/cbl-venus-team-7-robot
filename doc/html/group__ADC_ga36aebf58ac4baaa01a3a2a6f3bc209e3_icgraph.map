@@ -1,0 +1,6 @@
+<map id="initialized_adc" name="initialized_adc">
+<area shape="rect" id="node1" title="Check if ADC has been initialized." alt="" coords="433,31,549,57"/>
+<area shape="rect" id="node2" href="$adc_8c.html#abfec0c3da1defecc0e7f60079f6e59eb" title=" " alt="" coords="224,31,385,57"/>
+<area shape="rect" id="node3" href="$group__ADC.html#ga3b240634d5b05f4081287644d6a8a60d" title=" " alt="" coords="21,5,160,32"/>
+<area shape="rect" id="node4" href="$group__ADC.html#ga6445090781b49f628c788ba3d9745853" title=" " alt="" coords="5,56,176,83"/>
+</map>

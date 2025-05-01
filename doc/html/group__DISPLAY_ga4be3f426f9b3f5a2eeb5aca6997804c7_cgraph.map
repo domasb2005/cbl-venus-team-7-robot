@@ -1,0 +1,10 @@
+<map id="displayDrawTriangle" name="displayDrawTriangle">
+<area shape="rect" id="node1" title="Draw a triangle without infill between the three given points in the given color." alt="" coords="5,56,160,83"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#ga80ea5d257614d01bf5cda9a630768dbb" title="Draw a line from two coordinates." alt="" coords="208,56,339,83"/>
+<area shape="rect" id="node3" href="$group__DISPLAY.html#gaeae5a9ba9c5f7b780544cf28ce8c9eff" title="Draw a single pixel to the display." alt="" coords="387,56,521,83"/>
+<area shape="rect" id="node4" href="$display_8c.html#a6eed2e690959fe65c5e5b63808afd2ed" title=" " alt="" coords="589,5,759,32"/>
+<area shape="rect" id="node7" href="$display_8c.html#a59d25920920ebea3da54ebbf4fd8493c" title=" " alt="" coords="571,56,777,83"/>
+<area shape="rect" id="node8" href="$display_8c.html#a83fc1cb5de388a258140bfe114c9c07b" title=" " alt="" coords="569,107,779,133"/>
+<area shape="rect" id="node5" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="827,31,943,57"/>
+<area shape="rect" id="node6" href="$display_8c.html#a2e84550a5ec7d45e5253d8e82523fe31" title=" " alt="" coords="837,81,933,108"/>
+</map>

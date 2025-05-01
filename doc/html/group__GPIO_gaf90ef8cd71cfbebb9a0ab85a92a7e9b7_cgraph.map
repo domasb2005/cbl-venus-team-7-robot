@@ -1,0 +1,5 @@
+<map id="gpio_reset_pin" name="gpio_reset_pin">
+<area shape="rect" id="node1" title="Function is currently a no&#45;op placeholder for arduino compatibility." alt="" coords="5,31,123,57"/>
+<area shape="rect" id="node2" href="$group__GPIO.html#ga4ad28b4a23b0fcaafc290f6a6fbb12e6" title="Set the IO pin as in input or output." alt="" coords="171,5,312,32"/>
+<area shape="rect" id="node3" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="183,56,299,83"/>
+</map>

@@ -1,0 +1,8 @@
+<map id="gpio_get_direction" name="gpio_get_direction">
+<area shape="rect" id="node1" title="Returns the direction the set pin is initialized in." alt="" coords="651,31,793,57"/>
+<area shape="rect" id="node2" href="$group__UTIL.html#gad14cbdc178718d358180c9a1cf83cfc0" title="Displays a table to see where all pins have been mapped, what channels have been linked where and the..." alt="" coords="476,5,587,32"/>
+<area shape="rect" id="node3" href="$group__SWITCHBOX.html#gadb0f900c7b5b5c0404844915b649e9b6" title="Set the type of a switch pin." alt="" coords="460,56,603,83"/>
+<area shape="rect" id="node4" href="$display_8c.html#a1896cc8b3dbceaf375a73e39b3779734" title=" " alt="" coords="289,56,412,83"/>
+<area shape="rect" id="node5" href="$display_8c.html#a0b45648ee09abc34633a3e826fba639a" title=" " alt="" coords="151,56,241,83"/>
+<area shape="rect" id="node6" href="$group__DISPLAY.html#ga63290b40f423efdea8918393f7dad591" title="Initialize the display display." alt="" coords="5,56,103,83"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="check_initialized_pwm" name="check_initialized_pwm">
+<area shape="rect" id="node1" title=" " alt="" coords="212,157,383,184"/>
+<area shape="rect" id="node2" href="$group__PWM.html#ga6bff6e05dd03cd7dc161662f235ae9f7" title="Removes the instantiated shared memory system of the PWM channel." alt="" coords="29,5,140,32"/>
+<area shape="rect" id="node3" href="$group__PWM.html#ga743cc01be43fd5d2594f15b8a740128a" title="Gets the duty cycle of the specified PWM channel." alt="" coords="5,56,164,83"/>
+<area shape="rect" id="node4" href="$group__PWM.html#gaffcf79615d858732a3151c4c6edeb075" title="Returns the period of a certain PWM channel." alt="" coords="19,107,150,133"/>
+<area shape="rect" id="node5" href="$group__PWM.html#ga4342310e34e4df54628660984b7f698f" title="Get the number of steps a certain channel has taken so far." alt="" coords="23,157,147,184"/>
+<area shape="rect" id="node6" href="$group__PWM.html#ga80cf5c97176cf7d9108edd18fdf58cd6" title="Sets the duty cycle for the specified PWM channel." alt="" coords="5,208,164,235"/>
+<area shape="rect" id="node7" href="$group__PWM.html#gab72eaf65d65dedf016c7156517c44071" title="Sets the period for the specified PWM channel." alt="" coords="20,259,149,285"/>
+<area shape="rect" id="node8" href="$group__PWM.html#ga4776fa9aee834d38b282438c78bccdd7" title="Generates steps steps on the PWM channel." alt="" coords="23,309,146,336"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="library/pulsecounter.c" name="library/pulsecounter.c">
+<area shape="rect" id="node1" title=" " alt="" coords="352,5,515,32"/>
+<area shape="rect" id="node2" href="$pulsecounter_8h.html" title=" " alt="" coords="119,80,238,107"/>
+<area shape="rect" id="node7" href="$arm__shared__memory__system_8h.html" title=" " alt="" coords="251,155,479,181"/>
+<area shape="rect" id="node8" href="$log_8h.html" title=" " alt="" coords="358,80,413,107"/>
+<area shape="rect" id="node9" title=" " alt="" coords="437,80,528,107"/>
+<area shape="rect" id="node10" title=" " alt="" coords="552,80,619,107"/>
+<area shape="rect" id="node11" title=" " alt="" coords="643,80,714,107"/>
+<area shape="rect" id="node3" href="$gpio_8h.html" title=" " alt="" coords="113,155,175,181"/>
+<area shape="rect" id="node5" title=" " alt="" coords="5,229,88,256"/>
+<area shape="rect" id="node6" title=" " alt="" coords="219,229,290,256"/>
+<area shape="rect" id="node4" href="$pinmap_8h.html" title=" " alt="" coords="112,229,195,256"/>
+</map>

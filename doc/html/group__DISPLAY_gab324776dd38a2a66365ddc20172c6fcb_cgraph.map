@@ -1,0 +1,9 @@
+<map id="displayDrawCircle" name="displayDrawCircle">
+<area shape="rect" id="node1" title="Draw a circle without infill on the display." alt="" coords="5,56,145,83"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#gaeae5a9ba9c5f7b780544cf28ce8c9eff" title="Draw a single pixel to the display." alt="" coords="193,56,328,83"/>
+<area shape="rect" id="node3" href="$display_8c.html#a6eed2e690959fe65c5e5b63808afd2ed" title=" " alt="" coords="395,5,566,32"/>
+<area shape="rect" id="node6" href="$display_8c.html#a59d25920920ebea3da54ebbf4fd8493c" title=" " alt="" coords="377,56,584,83"/>
+<area shape="rect" id="node7" href="$display_8c.html#a83fc1cb5de388a258140bfe114c9c07b" title=" " alt="" coords="376,107,585,133"/>
+<area shape="rect" id="node4" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="633,31,749,57"/>
+<area shape="rect" id="node5" href="$display_8c.html#a2e84550a5ec7d45e5253d8e82523fe31" title=" " alt="" coords="643,81,739,108"/>
+</map>

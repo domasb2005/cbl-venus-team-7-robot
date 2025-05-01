@@ -1,0 +1,15 @@
+<map id="display_init" name="display_init">
+<area shape="rect" id="node1" title="Initialize the display display." alt="" coords="5,81,103,108"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#ga10ab8b136075cbc18b78bcc908065f7b" title="Flip the drawing off the screen." alt="" coords="151,56,275,83"/>
+<area shape="rect" id="node7" href="$display_8c.html#a0b45648ee09abc34633a3e826fba639a" title=" " alt="" coords="167,107,258,133"/>
+<area shape="rect" id="node3" href="$display_8c.html#a59d25920920ebea3da54ebbf4fd8493c" title=" " alt="" coords="323,5,529,32"/>
+<area shape="rect" id="node6" href="$display_8c.html#ad45a794f425f39fb235f98a062839ccb" title=" " alt="" coords="323,56,529,83"/>
+<area shape="rect" id="node4" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="591,81,707,108"/>
+<area shape="rect" id="node5" href="$display_8c.html#a2e84550a5ec7d45e5253d8e82523fe31" title=" " alt="" coords="601,19,697,45"/>
+<area shape="rect" id="node8" href="$group__UTIL.html#gaa8a2a52c0967dcf48e8ff578ead12813" title="Wait for msec milliseconds." alt="" coords="377,208,475,235"/>
+<area shape="rect" id="node9" href="$display_8c.html#a1896cc8b3dbceaf375a73e39b3779734" title=" " alt="" coords="365,157,487,184"/>
+<area shape="rect" id="node10" href="$group__GPIO.html#ga4ad28b4a23b0fcaafc290f6a6fbb12e6" title="Set the IO pin as in input or output." alt="" coords="769,157,910,184"/>
+<area shape="rect" id="node11" href="$group__SWITCHBOX.html#gadb0f900c7b5b5c0404844915b649e9b6" title="Set the type of a switch pin." alt="" coords="577,208,720,235"/>
+<area shape="rect" id="node12" href="$group__GPIO.html#ga438e7f5cf810811e63ca7d7495b6e274" title="Returns the direction the set pin is initialized in." alt="" coords="768,259,911,285"/>
+<area shape="rect" id="node13" href="$group__GPIO.html#ga4523dbc24733009cd04cea2c0d89a3f1" title=" " alt="" coords="770,208,909,235"/>
+</map>

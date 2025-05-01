@@ -1,0 +1,4 @@
+<map id="gpio_disable_all_interrupts" name="gpio_disable_all_interrupts">
+<area shape="rect" id="node1" title="Disables all interrupts from being raised." alt="" coords="5,5,203,32"/>
+<area shape="rect" id="node2" href="$interrupt_8c.html#a9b67e3d1a1cb47210459207e80747ad1" title=" " alt="" coords="251,5,399,32"/>
+</map>

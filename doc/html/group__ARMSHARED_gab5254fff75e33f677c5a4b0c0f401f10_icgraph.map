@@ -1,0 +1,8 @@
+<map id="arm_shared_init" name="arm_shared_init">
+<area shape="rect" id="node1" title=" " alt="" coords="617,55,744,81"/>
+<area shape="rect" id="node2" href="$group__VERSION.html#ga4ab7d615706bed1f5785b78a216b6615" title=" " alt="" coords="300,55,415,81"/>
+<area shape="rect" id="node3" href="$group__GPIO.html#gafdbe206b3c49f019757ab09b3cf52b9c" title=" " alt="" coords="155,29,233,56"/>
+<area shape="rect" id="node5" href="$group__SWITCHBOX.html#gaa08d84687c6b7fcfae8d1ea0e067306f" title="Initializes the switch box." alt="" coords="136,80,252,107"/>
+<area shape="rect" id="node6" href="$group__VERSION.html#gac6230d495fc909bb61195c45f703d492" title=" " alt="" coords="463,29,569,56"/>
+<area shape="rect" id="node4" href="$libpynq_8h.html#a3c76b9633e9988436c3e3555be805728" title="Initialise the switchbox and GPIO of the PYNQ." alt="" coords="5,55,88,81"/>
+</map>

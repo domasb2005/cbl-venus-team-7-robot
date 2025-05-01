@@ -1,0 +1,4 @@
+<map id="pwm_set_steps" name="pwm_set_steps">
+<area shape="rect" id="node1" title="Generates steps steps on the PWM channel." alt="" coords="5,5,128,32"/>
+<area shape="rect" id="node2" href="$pwm_8c.html#abcae3c5f25f1aec206ba8f64f0bed39e" title=" " alt="" coords="176,5,347,32"/>
+</map>

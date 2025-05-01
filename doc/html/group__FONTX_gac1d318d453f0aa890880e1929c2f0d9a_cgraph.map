@@ -1,0 +1,4 @@
+<map id="Font2Bitmap" name="Font2Bitmap">
+<area shape="rect" id="node1" title="Converts a font data buffer into a bitmap." alt="" coords="5,5,111,32"/>
+<area shape="rect" id="node2" href="$group__FONTX.html#ga78ff021f7f07c95d125835eb427f0f26" title="Rotates a byte by 90 degrees." alt="" coords="159,5,253,32"/>
+</map>

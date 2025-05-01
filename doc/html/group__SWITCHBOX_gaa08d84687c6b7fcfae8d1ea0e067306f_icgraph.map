@@ -1,0 +1,4 @@
+<map id="switchbox_init" name="switchbox_init">
+<area shape="rect" id="node1" title="Initializes the switch box." alt="" coords="136,5,252,32"/>
+<area shape="rect" id="node2" href="$libpynq_8h.html#a3c76b9633e9988436c3e3555be805728" title="Initialise the switchbox and GPIO of the PYNQ." alt="" coords="5,5,88,32"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="gpio_get_interrupt_pins" name="gpio_get_interrupt_pins">
+<area shape="rect" id="node1" title="Gets all pins on which an interrupt occurred." alt="" coords="5,56,180,83"/>
+<area shape="rect" id="node2" href="$interrupt_8c.html#a9b67e3d1a1cb47210459207e80747ad1" title=" " alt="" coords="243,5,391,32"/>
+<area shape="rect" id="node3" href="$interrupt_8c.html#acc11d21a596fbb1965d2bbbc9dbe5c1e" title=" " alt="" coords="245,56,390,83"/>
+<area shape="rect" id="node4" href="$group__INTERRUPTS.html#ga9e524c3f7cef13eef906cd52e7867d43" title="Checks for error in enabled pin. Terminates the process if the pin is not enabled." alt="" coords="228,107,407,133"/>
+</map>

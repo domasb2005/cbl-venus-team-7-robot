@@ -1,0 +1,8 @@
+<map id="gpio_set_direction" name="gpio_set_direction">
+<area shape="rect" id="node1" title="Set the IO pin as in input or output." alt="" coords="651,56,792,83"/>
+<area shape="rect" id="node2" href="$group__GPIO.html#gaf90ef8cd71cfbebb9a0ab85a92a7e9b7" title="Function is currently a no&#45;op placeholder for arduino compatibility." alt="" coords="473,5,590,32"/>
+<area shape="rect" id="node3" href="$display_8c.html#a1896cc8b3dbceaf375a73e39b3779734" title=" " alt="" coords="289,81,412,108"/>
+<area shape="rect" id="node6" href="$group__SWITCHBOX.html#gadb0f900c7b5b5c0404844915b649e9b6" title="Set the type of a switch pin." alt="" coords="460,107,603,133"/>
+<area shape="rect" id="node4" href="$display_8c.html#a0b45648ee09abc34633a3e826fba639a" title=" " alt="" coords="151,81,241,108"/>
+<area shape="rect" id="node5" href="$group__DISPLAY.html#ga63290b40f423efdea8918393f7dad591" title="Initialize the display display." alt="" coords="5,81,103,108"/>
+</map>

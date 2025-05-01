@@ -1,0 +1,4 @@
+<map id="GetFontx" name="GetFontx">
+<area shape="rect" id="node1" title="Gets the glyph data for the specified ASCII character." alt="" coords="5,5,87,32"/>
+<area shape="rect" id="node2" href="$group__FONTX.html#gad919094a18ac1d85c85f741c31a3dc00" title="Opens the font file and reads the font data into the FontxFile structure." alt="" coords="135,5,227,32"/>
+</map>

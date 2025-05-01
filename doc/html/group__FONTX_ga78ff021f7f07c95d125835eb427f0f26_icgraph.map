@@ -1,0 +1,4 @@
+<map id="RotateByte" name="RotateByte">
+<area shape="rect" id="node1" title="Rotates a byte by 90 degrees." alt="" coords="159,5,253,32"/>
+<area shape="rect" id="node2" href="$group__FONTX.html#gac1d318d453f0aa890880e1929c2f0d9a" title="Converts a font data buffer into a bitmap." alt="" coords="5,5,111,32"/>
+</map>

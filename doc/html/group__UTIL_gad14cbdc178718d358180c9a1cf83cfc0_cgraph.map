@@ -1,0 +1,6 @@
+<map id="mapping_info" name="mapping_info">
+<area shape="rect" id="node1" title="Displays a table to see where all pins have been mapped, what channels have been linked where and the..." alt="" coords="5,56,116,83"/>
+<area shape="rect" id="node2" href="$group__GPIO.html#ga438e7f5cf810811e63ca7d7495b6e274" title="Returns the direction the set pin is initialized in." alt="" coords="164,5,307,32"/>
+<area shape="rect" id="node3" href="$group__GPIO.html#gada071d5764fd998b331c31b867bfc88e" title="Return the level of the IO pin." alt="" coords="177,56,294,83"/>
+<area shape="rect" id="node4" href="$group__SWITCHBOX.html#ga33109c8bc1a5cbc80ed63ff9fe284c28" title="Sets the mode of a specified pin." alt="" coords="164,107,307,133"/>
+</map>

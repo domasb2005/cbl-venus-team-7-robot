@@ -1,0 +1,7 @@
+<map id="audio_record" name="audio_record">
+<area shape="rect" id="node1" title="Function to support audio recording without the audio codec controller." alt="" coords="5,81,112,108"/>
+<area shape="rect" id="node2" href="$i2cps_8c.html#a423d97e7bbc2c26785d9a5de31d2f220" title=" " alt="" coords="170,5,233,32"/>
+<area shape="rect" id="node3" href="$uio_8c.html#ac176162be5c8bc38445bb9034d08e441" title=" " alt="" coords="168,56,235,83"/>
+<area shape="rect" id="node4" href="$i2cps_8c.html#a8fbf09bd758928bc8f434d96957ec40f" title=" " alt="" coords="162,107,241,133"/>
+<area shape="rect" id="node5" href="$uio_8c.html#a59a8a2b5a485df4f125d7c4f71f48b6f" title=" " alt="" coords="160,157,243,184"/>
+</map>

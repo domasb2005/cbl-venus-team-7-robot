@@ -1,0 +1,7 @@
+<map id="color_led_off" name="color_led_off">
+<area shape="rect" id="node1" title="Set color LED 0 to black. Same as color_led_onoff(LED_OFF, LED_OFF, LED_OFF)." alt="" coords="5,56,112,83"/>
+<area shape="rect" id="node2" href="$group__LEDS.html#ga17a899bd719b38cfad2b6c69dd75b7ef" title="Switches on/off the red/green/blue components of color LED 0." alt="" coords="160,56,283,83"/>
+<area shape="rect" id="node3" href="$group__LEDS.html#ga692d47d5ac4d6699faf94e76e9b7a4a3" title="Switches on/off the blue component of color LED 0." alt="" coords="335,5,493,32"/>
+<area shape="rect" id="node4" href="$group__LEDS.html#ga82bb7a9d695a458db2b1f62c6af1e7b1" title="Switches on/off the green component of color LED 0." alt="" coords="331,56,497,83"/>
+<area shape="rect" id="node5" href="$group__LEDS.html#ga34dee279f15866dcf3444ac236c06dcb" title="Switches on/off the red component of color LED 0." alt="" coords="339,107,489,133"/>
+</map>

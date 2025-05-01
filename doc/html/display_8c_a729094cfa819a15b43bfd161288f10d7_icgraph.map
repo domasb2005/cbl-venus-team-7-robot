@@ -1,0 +1,7 @@
+<map id="spi_master_write_color" name="spi_master_write_color">
+<area shape="rect" id="node1" title=" " alt="" coords="575,31,748,57"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#ga1c1688930e03cde2e24c29ad420997ba" title="Draw a filled rectangle to the display." alt="" coords="376,31,527,57"/>
+<area shape="rect" id="node3" href="$group__DISPLAY.html#ga8a92d604ad9c6f72684a0d0679cb04bf" title="Draws a character on the given coordinates of the display." alt="" coords="195,5,328,32"/>
+<area shape="rect" id="node5" href="$group__DISPLAY.html#gac8caa3499c1a3f4a26dccfb839ba0255" title="Fill entire display with a single color using the ldcDrawFillRect function." alt="" coords="196,56,327,83"/>
+<area shape="rect" id="node4" href="$group__DISPLAY.html#ga0cf83239824624d1a311a74613194ad0" title="Function to draw a string on the display." alt="" coords="5,5,147,32"/>
+</map>

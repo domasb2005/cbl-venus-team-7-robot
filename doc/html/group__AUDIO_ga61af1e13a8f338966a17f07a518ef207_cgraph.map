@@ -1,0 +1,9 @@
+<map id="audio_select_input" name="audio_select_input">
+<area shape="rect" id="node1" title="selects the audio input channel." alt="" coords="5,56,149,83"/>
+<area shape="rect" id="node2" href="$group__AUDIO.html#gaec4645b89d23204e90f880d09da94525" title="Function to select LINE_IN as input." alt="" coords="197,31,308,57"/>
+<area shape="rect" id="node7" href="$group__AUDIO.html#ga2203ea82d55c60566ab868a82292aedf" title="Function to select MIC as input." alt="" coords="207,81,299,108"/>
+<area shape="rect" id="node3" href="$i2cps_8c.html#a423d97e7bbc2c26785d9a5de31d2f220" title=" " alt="" coords="388,5,451,32"/>
+<area shape="rect" id="node4" href="$i2cps_8c.html#a8fbf09bd758928bc8f434d96957ec40f" title=" " alt="" coords="380,56,459,83"/>
+<area shape="rect" id="node5" href="$group__AUDIO.html#ga3ec4d5593965dc8b93d40e80e2143902" title=" " alt="" coords="356,107,483,133"/>
+<area shape="rect" id="node6" href="$i2cps_8c.html#a655bf0c0118a9dff569ee054c0a395f1" title=" " alt="" coords="531,107,651,133"/>
+</map>

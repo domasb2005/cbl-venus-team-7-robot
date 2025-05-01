@@ -1,0 +1,8 @@
+<map id="displayDrawPixel" name="displayDrawPixel">
+<area shape="rect" id="node1" title="Draw a single pixel to the display." alt="" coords="5,56,140,83"/>
+<area shape="rect" id="node2" href="$display_8c.html#a6eed2e690959fe65c5e5b63808afd2ed" title=" " alt="" coords="207,5,378,32"/>
+<area shape="rect" id="node5" href="$display_8c.html#a59d25920920ebea3da54ebbf4fd8493c" title=" " alt="" coords="189,56,396,83"/>
+<area shape="rect" id="node6" href="$display_8c.html#a83fc1cb5de388a258140bfe114c9c07b" title=" " alt="" coords="188,107,397,133"/>
+<area shape="rect" id="node3" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="445,31,561,57"/>
+<area shape="rect" id="node4" href="$display_8c.html#a2e84550a5ec7d45e5253d8e82523fe31" title=" " alt="" coords="455,81,551,108"/>
+</map>

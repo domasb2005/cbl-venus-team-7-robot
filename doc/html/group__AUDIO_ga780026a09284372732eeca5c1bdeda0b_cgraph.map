@@ -1,0 +1,11 @@
+<map id="audio_init" name="audio_init">
+<area shape="rect" id="node1" title="Initializes the audio register. Sets the sampling frequency. defines several values such as audio rec..." alt="" coords="5,81,92,108"/>
+<area shape="rect" id="node2" href="$group__AUDIO.html#ga4c3476adecb27a3162fabab4af088f0b" title=" " alt="" coords="140,56,291,83"/>
+<area shape="rect" id="node7" href="$group__AUDIO.html#ga9c9de79126611d05d3e2bda897ca886e" title=" " alt="" coords="151,107,279,133"/>
+<area shape="rect" id="node3" href="$i2cps_8c.html#a423d97e7bbc2c26785d9a5de31d2f220" title=" " alt="" coords="371,5,433,32"/>
+<area shape="rect" id="node4" href="$i2cps_8c.html#a8fbf09bd758928bc8f434d96957ec40f" title=" " alt="" coords="363,56,441,83"/>
+<area shape="rect" id="node5" href="$group__AUDIO.html#ga3ec4d5593965dc8b93d40e80e2143902" title=" " alt="" coords="339,107,465,133"/>
+<area shape="rect" id="node6" href="$i2cps_8c.html#a655bf0c0118a9dff569ee054c0a395f1" title=" " alt="" coords="513,157,633,184"/>
+<area shape="rect" id="node8" href="$audio_8c.html#a543110eb76ac847e8be875e2cfb0fbc1" title=" " alt="" coords="341,208,463,235"/>
+<area shape="rect" id="node9" href="$i2cps_8c.html#abf82e1e8e8f7974695f541af2526357a" title=" " alt="" coords="515,233,631,260"/>
+</map>

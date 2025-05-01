@@ -1,0 +1,9 @@
+<map id="displayFillScreen" name="displayFillScreen">
+<area shape="rect" id="node1" title="Fill entire display with a single color using the ldcDrawFillRect function." alt="" coords="5,56,136,83"/>
+<area shape="rect" id="node2" href="$group__DISPLAY.html#ga1c1688930e03cde2e24c29ad420997ba" title="Draw a filled rectangle to the display." alt="" coords="184,56,335,83"/>
+<area shape="rect" id="node3" href="$display_8c.html#a6eed2e690959fe65c5e5b63808afd2ed" title=" " alt="" coords="401,5,571,32"/>
+<area shape="rect" id="node6" href="$display_8c.html#a729094cfa819a15b43bfd161288f10d7" title=" " alt="" coords="399,56,573,83"/>
+<area shape="rect" id="node7" href="$display_8c.html#a59d25920920ebea3da54ebbf4fd8493c" title=" " alt="" coords="383,107,589,133"/>
+<area shape="rect" id="node4" href="$group__GPIO.html#ga6d929f90f89a8bccbe40da10a323a508" title="Set the level of the output IO pin. If the pin is configured as input, this function does nothing." alt="" coords="637,31,753,57"/>
+<area shape="rect" id="node5" href="$display_8c.html#a2e84550a5ec7d45e5253d8e82523fe31" title=" " alt="" coords="647,81,743,108"/>
+</map>
