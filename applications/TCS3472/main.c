@@ -63,7 +63,7 @@ int main(void) {
 	/********** Preconfigure sensor ********/
 	tcs3472 sensor = TCS3472_EMPTY;
 	tcs_set_integration(&sensor, tcs3472_integration_from_ms(integration_time_ms));
-	tcs_set_gain(&sensor, x16);
+	tcs_set_gain(&sensor, x4);
 
 	//enable sensor -> loads preconfiguration
 	i = tcs_init(IIC0, &sensor);

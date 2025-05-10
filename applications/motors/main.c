@@ -23,8 +23,10 @@ int main(void) {
     struct termios old_settings;
     char key;
     int left_speed, right_speed;
-    const int STEP_COUNT = 200;  // Variable for step count
-    const int CUSTOM_SPEED = 15000;  // Our custom speed
+    const int STEP_COUNT = 100;  // Variable for step count
+    const int CUSTOM_SPEED = 20000;  // Our custom speed
+    
+    printf("DEBUG: Initializing program with STEP_COUNT=%d, CUSTOM_SPEED=%d\n", STEP_COUNT, CUSTOM_SPEED);
     
     // Calculate microseconds per step at our custom speed
     // If 3072 steps/s = 30us, then 10000 steps/s = (30 * 3072) / 10000 us
@@ -33,11 +35,14 @@ int main(void) {
     // Calculate total time for steps in milliseconds
     // Time = (steps * microseconds per step) / 1000 to get milliseconds
     int STEP_TIME_MS = (int)((STEP_COUNT * US_PER_STEP) / 1000);
-    // STEP_TIME_MS -= 100;
     
+    printf("DEBUG: Calculated timing - US_PER_STEP=%.3f, STEP_TIME_MS=%d\n", US_PER_STEP, STEP_TIME_MS);
+    
+    printf("DEBUG: Initializing PYNQ and stepper motors...\n");
     pynq_init();
     stepper_init();
     stepper_enable();
+    printf("DEBUG: Initialization complete\n");
     
     // Configure terminal for immediate key reading
     configure_terminal(&old_settings);
@@ -47,7 +52,7 @@ int main(void) {
     
     while (1) {
         if (read(STDIN_FILENO, &key, 1) == 1) {
-            left_speed = CUSTOM_SPEED;   // Fixed: Using CUSTOM_SPEED instead of MAX_SPEED
+            left_speed = CUSTOM_SPEED;
             right_speed = CUSTOM_SPEED;
             
             if (key == '\033') { // Escape sequence
@@ -56,36 +61,44 @@ int main(void) {
                 
                 switch (key) {
                     case 'A': // Up arrow
+                        printf("DEBUG: Moving FORWARD - Steps: %d,%d Speed: %d,%d\n", 
+                               STEP_COUNT, STEP_COUNT, left_speed, right_speed);
                         stepper_set_speed(left_speed, right_speed);
                         stepper_steps(STEP_COUNT, STEP_COUNT);
-                        // sleep_msec(STEP_TIME_MS);
                         break;
                     case 'B': // Down arrow
+                        printf("DEBUG: Moving BACKWARD - Steps: %d,%d Speed: %d,%d\n", 
+                               -STEP_COUNT, -STEP_COUNT, left_speed, right_speed);
                         stepper_set_speed(left_speed, right_speed);
                         stepper_steps(-STEP_COUNT, -STEP_COUNT);
-                        // sleep_msec(STEP_TIME_MS);
                         break;
                     case 'C': // Right arrow
+                        printf("DEBUG: Turning RIGHT - Steps: %d,%d Speed: %d,%d\n", 
+                               -STEP_COUNT, STEP_COUNT, left_speed, right_speed);
                         stepper_set_speed(left_speed, right_speed);
                         stepper_steps(-STEP_COUNT, STEP_COUNT);
-                        // sleep_msec(STEP_TIME_MS);
                         break;
                     case 'D': // Left arrow
+                        printf("DEBUG: Turning LEFT - Steps: %d,%d Speed: %d,%d\n", 
+                               STEP_COUNT, -STEP_COUNT, left_speed, right_speed);
                         stepper_set_speed(left_speed, right_speed);
                         stepper_steps(STEP_COUNT, -STEP_COUNT);
-                        // sleep_msec(STEP_TIME_MS);
                         break;
                 }
+                printf("DEBUG: Movement complete\n");
             } else if (key == 'q') {
+                printf("DEBUG: Quit command received\n");
                 break;
             }
         }
     }
     
+    printf("DEBUG: Cleaning up and shutting down...\n");
     // Cleanup
     restore_terminal(&old_settings);
     stepper_disable();
     stepper_destroy();
     pynq_destroy();
+    printf("DEBUG: Cleanup complete\n");
     return EXIT_SUCCESS;
 }
