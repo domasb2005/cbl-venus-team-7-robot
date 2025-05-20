@@ -300,12 +300,34 @@ void follow_line() {
         } else if (raw_r3 > raw_r2 && raw_r3 > raw_r1) {
             while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
                      adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
+                // Check for crossing before making the turn
+                double v_l1 = adc_read_channel(IR_1L);
+                double v_l2 = adc_read_channel(IR_2L);
+                double v_l3 = adc_read_channel(IR_3L);
+                
+                if (v_l1 > LEFT_THRESHOLD || v_l2 > LEFT_THRESHOLD || v_l3 > LEFT_THRESHOLD) {
+                    printf("[!] Crossing detected during right turn. Switching to crater avoidance...\n");
+                    avoid_crater();
+                    break;
+                }
+                
                 smaller_step_forward();
                 small_step_right();
             }
         } else if (raw_r1 > raw_r2 && raw_r1 > raw_r3) {
             while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
                      adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
+                // Check for crossing before making the turn
+                double v_l1 = adc_read_channel(IR_1L);
+                double v_l2 = adc_read_channel(IR_2L);
+                double v_l3 = adc_read_channel(IR_3L);
+                
+                if (v_l1 > LEFT_THRESHOLD || v_l2 > LEFT_THRESHOLD || v_l3 > LEFT_THRESHOLD) {
+                    printf("[!] Crossing detected during left turn. Switching to crater avoidance...\n");
+                    avoid_crater();
+                    break;
+                }
+                
                 small_step_left();
             }
         } else {
