@@ -44,7 +44,7 @@ int vl53l0x_example_single(void) {
 	printf("Revision ID - %d\n", revision);
 	fflush(NULL); //Get some output even is distance readings hang
 
-	for (i=0; i<3; i++) // read values 20 times a second for 1 minute
+	for (i=0; i<20; i++) // read values 20 times a second for 1 minute
 	{
 		iDistance = tofReadDistance(&sensor);
 		printf("Distance = %dmm\n", iDistance);

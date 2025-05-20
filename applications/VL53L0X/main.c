@@ -88,7 +88,7 @@ int main(void) {
 	/** Connect one sensor to the IIC bus and enjoy! **/
 	// selectMuxChannel(7);
 	// sleep_msec(1000);
-	// scan_address();
+	scan_address();
 	// vl53l0x_example_single();
 	// // read_all();
 	// // scan_channels();
@@ -99,8 +99,8 @@ int main(void) {
 //	read_three();
 	// test_gpio();
 
-	//  scan_address();
-	 read_three();
+	//  vl53l0x_example_single();
+	//  read_three();
 // vl53l0x_example_single();	
 
 

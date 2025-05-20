@@ -95,7 +95,7 @@ void right_90(void) {
     printf("Performing 90-degree right turn\n");
     stepper_enable();
 
-    stepper_steps(-600, 600);
+    stepper_steps(-615, 615);
     sleep_msec(500);  // Small delay after turn
 }
 
@@ -103,13 +103,16 @@ void right_90(void) {
 void left_90(void) {
     printf("Performing 90-degree left turn\n");
     stepper_enable();
-    stepper_steps(600, -600);  // 7 * 100 steps, inverse for left turn
+    stepper_steps(615, -615);  // 7 * 100 steps, inverse for left turn
     sleep_msec(500);  // Small delay after turn
 }
 
 
 void auto_mode(int custom_speed) {
-    printf("Starting edge following auto mode with ADC IR sensors (threshold: 0.25V)\n");
+    // Threshold for black/white detection in volts
+    const double THRESHOLD = 1.15;      // 1V threshold for black detection
+    
+    printf("Starting edge following auto mode with ADC IR sensors (threshold: %.2fV)\n", THRESHOLD);
     
     int running = 1;
     int iterations = 0;
@@ -123,9 +126,6 @@ void auto_mode(int custom_speed) {
     // Step sizes - bigger for right turns
     const int SMALL_STEP = 2;           // Basic step size
     const int RIGHT_TURN_STEP = 4;      // Bigger steps for right turns
-    
-    // Threshold for black/white detection in volts
-    const double THRESHOLD = 0.4;      // 0.25V threshold for black detection
     
     // Initialize ADC once
     adc_init();
@@ -145,7 +145,33 @@ void auto_mode(int custom_speed) {
         double ir_center = adc_read_channel(ADC2);   // A2
         double ir_right = adc_read_channel(ADC1);    // A1
         
-        // Convert to binary values using threshold (below threshold = 0 = black, above = 1 = white)
+        // Print current readings
+        printf("\rIR Sensors: Left=%.2fV, Center=%.2fV, Right=%.2fV    ", 
+               ir_left, ir_center, ir_right);
+        fflush(stdout);
+        
+        // Check for 'q' key press
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        
+        struct timeval timeout;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 10000; // 10ms timeout
+        
+        if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
+            char key;
+            if (read(STDIN_FILENO, &key, 1) > 0) {
+                if (key == 'q') {
+                    stepper_reset();
+                    printf("\nExiting turn180 mode\n");
+                    running = 0;
+                    break;
+                }
+            }
+        }
+        
+        // Check if any sensor detects black (above threshold)
         int left_value = (ir_left < THRESHOLD) ? 1 : 0;
         int center_value = (ir_center < THRESHOLD) ? 1 : 0;
         int right_value = (ir_right < THRESHOLD) ? 1 : 0;
@@ -255,15 +281,16 @@ void auto_mode(int custom_speed) {
         printf("\nReached maximum iterations (%d) - stopping auto mode\n", MAX_ITERATIONS);
     }
     
-    stepper_set_speed(0, 0);
     stepper_disable();
     adc_destroy(); // Clean up ADC resources
     printf("\nEdge following complete\n");
 }
 
 void ir_analog_mode(void) {
+    stepper_reset();
+    stepper_disable();
     printf("Starting analog IR sensor mode\n");
-    printf("Reading values from A0, A1, A2 pins\n");
+    printf("Reading values from A0-A5 pins\n");
     printf("Press 'q' to quit this mode\n\n");
     
     struct termios old_settings, new_settings;
@@ -282,22 +309,34 @@ void ir_analog_mode(void) {
     int iterations = 0;
     
     while(running) {
-        // Read ADC values from A0, A1, A2 pins (left, center, right IR sensors)
-        double ir_left = adc_read_channel(ADC0);     // A0
-        double ir_center = adc_read_channel(ADC2);   // A1
-        double ir_right = adc_read_channel(ADC1);    // A2
+        // Read ADC values from all 6 channels
+        double adc_values[6];
+        uint32_t adc_raw_values[6];
         
-        // Also get raw values (0-65535)
-        uint32_t ir_left_raw = adc_read_channel_raw(ADC0);
-        uint32_t ir_center_raw = adc_read_channel_raw(ADC2);
-        uint32_t ir_right_raw = adc_read_channel_raw(ADC1);
+        // Read all channels
+        adc_values[0] = adc_read_channel(ADC0);     // A0
+        adc_values[1] = adc_read_channel(ADC1);     // A1
+        adc_values[2] = adc_read_channel(ADC2);     // A2
+        adc_values[3] = adc_read_channel(ADC3);     // A3
+        adc_values[4] = adc_read_channel(ADC4);     // A4
+        adc_values[5] = adc_read_channel(ADC5);     // A5
+        
+        // Get raw values
+        adc_raw_values[0] = adc_read_channel_raw(ADC0);
+        adc_raw_values[1] = adc_read_channel_raw(ADC1);
+        adc_raw_values[2] = adc_read_channel_raw(ADC2);
+        adc_raw_values[3] = adc_read_channel_raw(ADC3);
+        adc_raw_values[4] = adc_read_channel_raw(ADC4);
+        adc_raw_values[5] = adc_read_channel_raw(ADC5);
         
         // Display values every 10 iterations to avoid flooding the console
-        if (iterations % 10 == 0) {
-            printf("\rIR Sensors - Left: %.2fV (%5u), Center: %.2fV (%5u), Right: %.2fV (%5u)    ", 
-                   ir_left, ir_left_raw, 
-                   ir_center, ir_center_raw, 
-                   ir_right, ir_right_raw);
+        if (iterations % 2 == 0) {
+            printf("\rADC Values - ");
+            for (int i = 0; i < 6; i++) {
+                printf("A%d: %.2fV (%5u) | ", 
+                       i, adc_values[i], adc_raw_values[i]);
+            }
+            printf("    \r");
             fflush(stdout);
         }
         
@@ -330,91 +369,226 @@ void ir_analog_mode(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
 }
 
+// Function to perform 180-degree turn sequence
+void turn180_mode(void) {
+    printf("Starting turn180 mode - moving forward until black tape detection\n");
+    
+    // Initialize ADC
+    adc_init();
+    stepper_reset();
+    stepper_enable();
+    stepper_set_speed(20000, 20000); // Set speed for forward movement
+    stepper_steps(20000,20000);
+    
+    int running = 1;
+    const double THRESHOLD = 0.20;  // Same threshold as auto mode
+    const int FORWARD_STEP = 20;    // Small steps like in auto mode 
+    
+    // Configure terminal for non-blocking input
+    struct termios old_settings, new_settings;
+    tcgetattr(STDIN_FILENO, &old_settings);
+    new_settings = old_settings;
+    new_settings.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
+    
+    while(running) {
+        // Read all 6 IR sensors using ADC
+        double ir_left = adc_read_channel(ADC0);     // A0
+        double ir_center = adc_read_channel(ADC2);   // A2
+        double ir_right = adc_read_channel(ADC1);    // A1
+        double ir_a3 = adc_read_channel(ADC3);       // A3
+        double ir_a4 = adc_read_channel(ADC4);       // A4
+        double ir_a5 = adc_read_channel(ADC5);       // A5
+        
+        // Print current readings for all 6 sensors
+        printf("\rIR Sensors: Left=%.2fV, Center=%.2fV, Right=%.2fV, A3=%.2fV, A4=%.2fV, A5=%.2fV    ", 
+               ir_left, ir_center, ir_right, ir_a3, ir_a4, ir_a5);
+        fflush(stdout);
+        
+        // Check for 'q' key press
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        
+        struct timeval timeout;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 10000; // 10ms timeout
+        
+        if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
+            char key;
+            if (read(STDIN_FILENO, &key, 1) > 0) {
+                if (key == 'q') {
+                    stepper_reset();
+                    printf("\nExiting turn180 mode\n");
+                    running = 0;
+                    break;
+                }
+            }
+        }
+        
+        // Check if any of the 6 sensors detects black (above threshold)
+        if (ir_right >= THRESHOLD || ir_left >= THRESHOLD || ir_center >= THRESHOLD ||
+            ir_a3 >= THRESHOLD || ir_a4 >= THRESHOLD || ir_a5 >= THRESHOLD) {
+            stepper_reset();
+            stepper_enable();
+            printf("\nBlack tape detected! Executing 180-degree turn sequence\n");
+            sleep_msec(1000);  // Small delay
+
+            // Step 1: Reverse 300 steps
+            printf("1. Moving backwards 300 steps...\n");
+            stepper_steps(-300, -300);
+            sleep_msec(1000);  // Small delay
+            
+            // Step 2: First 90-degree right turn
+            printf("2. Performing first 90-degree right turn...\n");
+            right_90();
+            sleep_msec(1000);  // Small delay
+            
+            // Step 3: Forward 1000 steps
+            printf("3. Moving forward 1000 steps...\n");
+            stepper_steps(1000, 1000);
+            sleep_msec(2000);  // Small delay
+            
+            // Step 4: Second 90-degree right turn
+            printf("4. Performing second 90-degree right turn...\n");
+            right_90();
+            sleep_msec(2000);  // Small delay
+
+            
+            printf("180-degree turn sequence complete!\n");
+            running = 0;  // Exit the mode
+        }
+        
+        sleep_msec(1);  // Small delay between readings
+    }
+    
+    // Restore terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
+    
+    stepper_disable();
+    adc_destroy();  // Clean up ADC resources
+}
+
 int main(void) {
     struct termios old_settings;
     char mode;
     char key;
     int left_speed, right_speed;
     const int STEP_COUNT = 10;
+    const int SMALL_MANUAL_STEP = 100;  // New constant for manual mode
     const int CUSTOM_SPEED = 20000;
     
     // Calculate timing information
     const float US_PER_STEP = (30.0f * 3072) / CUSTOM_SPEED;
     int STEP_TIME_MS = (int)((STEP_COUNT * US_PER_STEP) / 1000);
     
-    printf("DEBUG: Initializing program with STEP_COUNT=%d, CUSTOM_SPEED=%d\n", STEP_COUNT, CUSTOM_SPEED);
-    printf("DEBUG: Calculated timing - US_PER_STEP=%.3f, STEP_TIME_MS=%d\n", US_PER_STEP, STEP_TIME_MS);
     
     // Initialize all systems
-    printf("DEBUG: Initializing PYNQ and stepper motors...\n");
     pynq_init();
     stepper_init();
     stepper_enable();
-    printf("DEBUG: Initialization complete\n");
     
     while(1) {  // Main loop to keep asking for mode
         // Mode selection
         printf("Select mode:\n");
         printf("'m' - Manual control (arrow keys)\n");
         printf("'a' - Auto mode (forward until black edge)\n");
-        printf("'i' - IR analog mode (read ADC values)\n");  // New option
+        printf("'i' - IR analog mode (read ADC values)\n");
+        printf("'t' - Turn180 mode (180-degree turn on black detection)\n");  // New option
         printf("'q' - Quit program\n");
-        printf("Enter mode (m/a/i/q): ");
+        printf("Enter mode (m/a/i/t/q): ");  // Updated prompt
         scanf(" %c", &mode);
         
         if (mode == 'q') {
             break;
         } else if (mode == 'a') {
             auto_mode(CUSTOM_SPEED);
+        } else if (mode == 't') {  // New mode
+            turn180_mode();
         } else if (mode == 'm') {
             configure_terminal(&old_settings);
             
-            printf("Manual mode - Use arrow keys to control. Press 'q' to quit.\n");
-            printf("Each movement will take approximately %d milliseconds\n", STEP_TIME_MS);
+            // Clear screen and print fixed sections
+            /*printf("\033[2J\033[H"); // Clear screen and move cursor to top
+            printf("Manual Control Mode Instructions:\n");
+            printf("--------------------------------\n");
+            printf("Use arrow keys to control the robot:\n");
+            printf("↑ - Forward\n");
+            printf("↓ - Backward\n");
+            printf("← - Left turn\n");
+            printf("→ - Right turn\n");
+            printf("Press 'q' to quit\n");
+            printf("\n");
+            printf("Sensor Readings:\n");
+            printf("---------------\n");
+            printf("TOF Distance: \n");
+            printf("IR Sensors:   \n");*/
             
-            while (1) {
-                if (read(STDIN_FILENO, &key, 1) == 1) {
-                    left_speed = CUSTOM_SPEED;
-                    right_speed = CUSTOM_SPEED;
-                    
-                    if (key == '\033') { // Escape sequence
-                        read(STDIN_FILENO, &key, 1); // Skip '['
-                        read(STDIN_FILENO, &key, 1); // Get actual key
+            int running = 1;
+            while (running) {
+                // Set up select for non-blocking input
+                fd_set readfds;
+                FD_ZERO(&readfds);
+                FD_SET(STDIN_FILENO, &readfds);
+                
+                struct timeval timeout;
+                timeout.tv_sec = 0;
+                timeout.tv_usec = 50000; // 50ms timeout for sensor updates
+                
+                // Move cursor to TOF reading position and update
+                /*printf("\033[12;14H"); // Move to line 12, column 14*/
+                uint32_t distance = read_distance_low();
+                /*printf("%4dmm     ", distance);
+                
+                // Move cursor to IR reading position and update
+                printf("\033[13;14H"); // Move to line 13, column 14*/
+                infrared_readings_t ir_readings = read_infrared();
+                /*printf("L:%d C:%d R:%d     ", 
+                       ir_readings.left, 
+                       ir_readings.center, 
+                       ir_readings.right);
+                
+                fflush(stdout);*/
+                
+                // Check for input with timeout
+                if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
+                    if (read(STDIN_FILENO, &key, 1) == 1) {
+                        left_speed = CUSTOM_SPEED;
+                        right_speed = CUSTOM_SPEED;
                         
-                        switch (key) {
-                            case 'A': // Up arrow
-                                printf("DEBUG: Moving FORWARD - Steps: %d,%d Speed: %d,%d\n", 
-                                       STEP_COUNT, STEP_COUNT, left_speed, right_speed);
-                                stepper_set_speed(left_speed, right_speed);
-                                stepper_steps(STEP_COUNT, STEP_COUNT);
-                                read_and_print_sensors();
-                                break;
-                            case 'B': // Down arrow
-                                printf("DEBUG: Moving BACKWARD - Steps: %d,%d Speed: %d,%d\n", 
-                                       -STEP_COUNT, -STEP_COUNT, left_speed, right_speed);
-                                stepper_set_speed(left_speed, right_speed);
-                                stepper_steps(-STEP_COUNT, -STEP_COUNT);
-                                read_and_print_sensors();
-                                break;
-                            case 'C': // Right arrow
-                                printf("DEBUG: Turning RIGHT - Steps: %d,%d Speed: %d,%d\n", 
-                                       -STEP_COUNT, STEP_COUNT, left_speed, right_speed);
-                                stepper_set_speed(left_speed, right_speed);
-                                stepper_steps(-STEP_COUNT, 0);
-                                read_and_print_sensors();
-                                break;
+                        // Move cursor to message area for movement feedback
+                        /*printf("\033[15;1H\033[K"); // Move to line 15 and clear line*/
+                        
+                        if (key == '\033') { // Escape sequence
+                            read(STDIN_FILENO, &key, 1); // Skip '['
+                            read(STDIN_FILENO, &key, 1); // Get actual key
+                            
+                            switch (key) {
+                                case 'A': // Up arrow
+                                    /*printf("Moving Forward");*/
+                                    stepper_set_speed(left_speed, right_speed);
+                                    stepper_steps(SMALL_MANUAL_STEP, SMALL_MANUAL_STEP);
+                                    break;
+                                case 'B': // Down arrow
+                                    /*printf("Moving Backward");*/
+                                    stepper_set_speed(left_speed, right_speed);
+                                    stepper_steps(-SMALL_MANUAL_STEP, -SMALL_MANUAL_STEP);
+                                    break;
+                                case 'C': // Right arrow
+                                    /*printf("Turning Right");*/
+                                    stepper_set_speed(left_speed, right_speed);
+                                    stepper_steps(-SMALL_MANUAL_STEP, 0);
+                                    break;
                                 case 'D': // Left arrow
-                                printf("DEBUG: Turning LEFT - Steps: %d,%d Speed: %d,%d\n", 
-                                       STEP_COUNT, -STEP_COUNT, left_speed, right_speed);
-                                stepper_set_speed(left_speed, right_speed);
-                                stepper_steps(STEP_COUNT, 0);  // Fixed missing parameter
-                                read_and_print_sensors();
-                                break;
+                                    /*printf("Turning Left");*/
+                                    stepper_set_speed(left_speed, right_speed);
+                                    stepper_steps(SMALL_MANUAL_STEP, 0);
+                                    break;
+                            }
+                        } else if (key == 'q') {
+                            /*printf("\033[2J\033[H"); // Clear screen before exiting*/
+                            running = 0;
                         }
-                        printf("DEBUG: Movement complete\n");
-                    } else if (key == 'q') {
-                        printf("DEBUG: Quit command received\n");
-                        break;
                     }
                 }
             }

@@ -1,0 +1,209 @@
+#include <libpynq.h>
+#include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/select.h>
+#include <time.h>
+#include <stepper.h>
+#include "vl53l0x.h"
+#include <iic.h>
+
+#define TOF_ADDR 0x29
+#define STEP_SIZE 100
+#define SPEED 20000
+#define REFRESH_INTERVAL_MS 200
+
+static vl53x sensor;
+static int sensor_initialized = 0;
+
+struct termios old_settings;
+
+void configure_terminal(void) {
+    struct termios new_settings;
+    tcgetattr(STDIN_FILENO, &old_settings);
+    new_settings = old_settings;
+    new_settings.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
+}
+
+void restore_terminal(void) {
+    tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
+}
+
+uint32_t read_distance(void) {
+    if (!sensor_initialized) {
+        switchbox_set_pin(IO_AR_SCL, SWB_IIC0_SCL);
+        switchbox_set_pin(IO_AR_SDA, SWB_IIC0_SDA);
+        iic_init(IIC0);
+        if (tofInit(&sensor, IIC0, TOF_ADDR, 0) != 0) return 0;
+        sensor_initialized = 1;
+    }
+    return tofReadDistance(&sensor);
+}
+
+void print_fixed_ui(void) {
+    printf("\033[2J\033[H"); // Clear screen
+    printf("Manual Control Mode\n");
+    printf("--------------------\n");
+    printf("↑ Forward | ↓ Back | ← Left | → Right | q to quit\n\n");
+    printf("TOF Distance:     \n");
+    printf("IR Sensors   :     \n");
+    fflush(stdout);
+}
+
+// Add this struct definition after the includes and before any functions
+typedef struct {
+    int left;
+    int center;
+    int right;
+} infrared_readings_t;
+
+void update_sensor_display(void) {
+    infrared_readings_t ir;
+    ir.left = gpio_get_level(IO_AR13);
+    ir.center = gpio_get_level(IO_AR11);
+    ir.right = gpio_get_level(IO_AR12);
+    uint32_t distance = read_distance();
+
+    // Move to fixed positions
+    printf("\033[6;16H%4d mm    ", distance);
+    printf("\033[7;16HL:%d C:%d R:%d     ", ir.left, ir.center, ir.right);
+    fflush(stdout);
+}
+
+void manual_mode(void) {
+    printf("Starting Manual Mode...\n");
+    configure_terminal();
+    print_fixed_ui();
+
+    int running = 1;
+    char key;
+    struct timeval last_update, now;
+    gettimeofday(&last_update, NULL);
+
+    while (running) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+
+        struct timeval timeout = {0, 100000}; // 100 ms
+        select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout);
+
+        // Update sensors at intervals
+        gettimeofday(&now, NULL);
+        long elapsed = (now.tv_sec - last_update.tv_sec) * 1000 +
+                       (now.tv_usec - last_update.tv_usec) / 1000;
+
+        if (elapsed >= REFRESH_INTERVAL_MS) {
+            update_sensor_display();
+            last_update = now;
+        }
+
+        // Handle key input
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+            if (read(STDIN_FILENO, &key, 1) == 1) {
+                if (key == '\033') {
+                    read(STDIN_FILENO, &key, 1); // skip [
+                    read(STDIN_FILENO, &key, 1);
+                    switch (key) {
+                        case 'A': stepper_steps(STEP_SIZE, STEP_SIZE); break; // Up
+                        case 'B': stepper_steps(-STEP_SIZE, -STEP_SIZE); break; // Down
+                        case 'C': stepper_steps(-STEP_SIZE, STEP_SIZE); break; // Right
+                        case 'D': stepper_steps(STEP_SIZE, -STEP_SIZE); break; // Left
+                    }
+                } else if (key == 'q') {
+                    running = 0;
+                }
+            }
+        }
+    }
+
+    restore_terminal();
+    printf("\nExited Manual Mode.\n");
+}
+
+void auto_mode(void) {
+    printf("Starting Auto Mode...\n");
+    
+    #define SMALL_AUTO_STEP 20
+    #define SWEEP_STEPS 200
+
+    uint32_t distance = read_distance();
+    
+    if (distance > 1000) {
+        // Sweep right first
+        for (int i = 0; i < SWEEP_STEPS; i += SMALL_AUTO_STEP) {
+            stepper_steps(SMALL_AUTO_STEP, -SMALL_AUTO_STEP);
+            sleep_msec(500);
+            
+            distance = read_distance();
+            if (distance <= 1000) {
+                printf("Found something closer than 100cm while sweeping left!\n");
+                break;
+            }
+        }
+        
+        // If nothing found on right sweep, return to middle
+        stepper_steps(-SWEEP_STEPS, SWEEP_STEPS);
+        
+        // Sweep left
+        for (int i = 0; i < SWEEP_STEPS; i += SMALL_AUTO_STEP) {
+            stepper_steps(-SMALL_AUTO_STEP, SMALL_AUTO_STEP);
+            sleep_msec(500);            
+            distance = read_distance();
+            if (distance <= 1000) {
+                printf("Found something closer than 100cm while sweeping right!\n");
+                break;
+            }
+        }
+    } else {
+        printf("Object already within 100cm range!\n");
+    }
+
+    printf("\nExited Auto Mode.\n");
+}
+
+int main(void) {
+    // Initialize all components once
+    pynq_init();
+    gpio_init();
+    gpio_set_direction(IO_AR13, GPIO_DIR_INPUT);
+    gpio_set_direction(IO_AR12, GPIO_DIR_INPUT);
+    gpio_set_direction(IO_AR11, GPIO_DIR_INPUT);
+    
+    stepper_init();
+    stepper_enable();
+    stepper_set_speed(SPEED, SPEED);
+
+    char mode;
+    int running = 1;
+
+    while (running) {
+        printf("\nSelect mode (m for manual, a for auto, q to quit): ");
+        fflush(stdout);
+        scanf(" %c", &mode);
+
+        switch (mode) {
+            case 'm':
+                manual_mode();
+                break;
+            case 'a':
+                auto_mode();
+                break;
+            case 'q':
+                running = 0;
+                break;
+            default:
+                printf("Invalid mode selected!\n");
+        }
+    }
+
+    // Cleanup only when exiting the program
+    stepper_disable();
+    stepper_destroy();
+    pynq_destroy();
+    
+    return 0;
+}

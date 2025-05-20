@@ -21,6 +21,7 @@ void right_90(void) {
 }
 
 #define THRESHOLD 0.19
+#define LEFT_THRESHOLD 0.3
 
 void small_step_left() {
     stepper_enable();
@@ -31,9 +32,17 @@ void small_step_left() {
 
 void small_step_forward() {
     stepper_enable();
-    stepper_set_speed(15000, 15000);
-    stepper_steps(5, 5);
-    sleep_msec(50);
+    stepper_set_speed(30000, 30000);
+    stepper_steps(30, 30);
+    sleep_msec(10);
+    // stepper_reset();
+}
+
+void smaller_step_forward() {
+    stepper_enable();
+    stepper_set_speed(30000, 30000);
+    stepper_steps(10, 10);
+    sleep_msec(10);
 }
 
 void small_step_right() {
@@ -43,8 +52,81 @@ void small_step_right() {
     sleep_msec(50);
 }
 
+void avoid_crater() {
+    printf("\n[!] Crater detected — initiating avoidance maneuver...\n");
+
+    stepper_reset();
+    stepper_enable();
+
+    // 1. Go 300 steps backward
+    printf("[←] Reversing 300 steps...\n");
+    stepper_set_speed(20000, 20000);
+    stepper_steps(-300, -300);
+    sleep_msec(1000);
+
+    // 2. Turn 90 degrees LEFT
+    printf("[↺] Turning 90 degrees left...\n");
+    stepper_steps(615, -615);
+    sleep_msec(1000);
+
+    // 3. Move forward using small_step_forward() up to ~1300 steps total
+    int total_steps = 0;
+    printf("[↑] Moving forward incrementally (up to 1300 steps)...\n");
+
+    while (total_steps < 1300) {
+        double v_r1 = adc_read_channel(IR_1R);
+        double v_r2 = adc_read_channel(IR_2R);
+        double v_r3 = adc_read_channel(IR_3R);
+        double v_l1 = adc_read_channel(IR_1L);
+        double v_l2 = adc_read_channel(IR_2L);
+        double v_l3 = adc_read_channel(IR_3L);
+
+        // If right IR sees black → stop and return (line found)
+        if (v_r1 > THRESHOLD || v_r2 > THRESHOLD || v_r3 > THRESHOLD) {
+            printf("[✓] Right IR sees black — line reacquired. Exiting crater avoidance.\n");
+            return;
+        }
+
+        // If left IR sees black → restart crater avoidance
+        if (v_l1 > LEFT_THRESHOLD || v_l2 > LEFT_THRESHOLD || v_l3 > LEFT_THRESHOLD) {
+            printf("[↺] Left IR sees black during forward — restarting crater avoidance...\n");
+            avoid_crater();  // recursive call
+            return;          // terminate this instance so old one doesn't continue
+        }
+
+        small_step_forward();
+        total_steps += 40;  // each small_step_forward does 10 steps
+        sleep_msec(100);
+    }
+
+    // 4. Turn 90 degrees RIGHT
+    printf("[↻] Turning 90 degrees right...\n");
+    stepper_steps(-615, 615);
+    sleep_msec(1000);
+
+    // 5. small_step_forward until any of R1, R2, R3 are ON
+    printf("[→] Searching for line (right IRs)...\n");
+
+    while (1) {
+        double v_r1 = adc_read_channel(IR_1R);
+        double v_r2 = adc_read_channel(IR_2R);
+        double v_r3 = adc_read_channel(IR_3R);
+
+        printf("Right IRs: R1=%.3f R2=%.3f R3=%.3f\n", v_r1, v_r2, v_r3);
+
+        if (v_r1 > THRESHOLD || v_r2 > THRESHOLD || v_r3 > THRESHOLD) {
+            printf("[✓] Line reacquired by right IR. Exiting crater avoidance.\n");
+            break;
+        }
+
+        small_step_forward();
+        sleep_msec(50);
+    }
+}
+
+
 void follow_line() {
-    printf("Starting follow_line mode (raw-based)...\n");
+    printf("Starting follow_line mode (raw + cross-detection + recovery)...\n");
 
     struct termios old_settings, new_settings;
     tcgetattr(STDIN_FILENO, &old_settings);
@@ -58,73 +140,179 @@ void follow_line() {
 
     int running = 1;
     while (running) {
-        // Read raw ADC values
+        // --- Sensor reads ---
+        double v_l1 = adc_read_channel(IR_1L);
+        double v_l2 = adc_read_channel(IR_2L);
+        double v_l3 = adc_read_channel(IR_3L);
+        double v_r1 = adc_read_channel(IR_1R);
+        double v_r2 = adc_read_channel(IR_2R);
+        double v_r3 = adc_read_channel(IR_3R);
+
+        printf("Left IR values: v_l1=%.3f, v_l2=%.3f, v_l3=%.3f\n", v_l1, v_l2, v_l3);
+
+        int left_on_black = (v_l1 > LEFT_THRESHOLD) || (v_l2 > LEFT_THRESHOLD) || (v_l3 > LEFT_THRESHOLD);
+        int right_on_black = (v_r1 > THRESHOLD) || (v_r2 > THRESHOLD) || (v_r3 > THRESHOLD);
+        int all_ir_off = !left_on_black && !right_on_black;
+
+        // --- [1] CROSSING DETECTION (highest priority) ---
+        if (left_on_black) {
+            printf("\n[!] Crossing detected via left IR. Entering correction...\n");
+
+            // while ((adc_read_channel(IR_1L) > THRESHOLD ||
+            //         adc_read_channel(IR_2L) > THRESHOLD ||
+            //         adc_read_channel(IR_3L) > THRESHOLD) && running) {
+            //     small_step_left();
+            // }
+
+            // int right_remain = (adc_read_channel(IR_1R) > THRESHOLD ||
+            //                     adc_read_channel(IR_2R) > THRESHOLD ||
+            //                     adc_read_channel(IR_3R) > THRESHOLD);
+
+            // if (!right_remain) {
+            //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
+            //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
+            //         small_step_left();
+            //     }
+            // } else {
+            //     while ((adc_read_channel(IR_1L) > THRESHOLD || adc_read_channel(IR_2L) > THRESHOLD ||
+            //             adc_read_channel(IR_3L) > THRESHOLD || adc_read_channel(IR_1R) > THRESHOLD ||
+            //             adc_read_channel(IR_2R) > THRESHOLD || adc_read_channel(IR_3R) > THRESHOLD) && running) {
+            //         small_step_left();
+            //     }
+
+            //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
+            //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
+            //         small_step_left();
+            //     }
+            // }
+            avoid_crater();
+            printf("[✓] Crossing recovery complete. Resuming tracking...\n");
+            continue;
+        }
+
+        // --- [2] ROAD SPLIT DETECTION (same priority as crossing) ---
+        // int right_on_count = (v_r1 > THRESHOLD) + (v_r2 > THRESHOLD) + (v_r3 > THRESHOLD);
+        // if ((v_r1 > THRESHOLD && v_r2 > THRESHOLD) || right_on_count >= 3) {
+        //     printf("\n[!] Road split detected (R1 and R2 on black). Executing correction...\n");
+
+        //     // Step LEFT until R1 is OFF
+        //     while (adc_read_channel(IR_1R) > THRESHOLD && running) {
+        //         small_step_left();
+        //     }
+
+        //     // Step LEFT until R2 is ON
+        //     while (adc_read_channel(IR_2R) <= THRESHOLD && running) {
+        //         small_step_left();
+        //     }
+
+        //     printf("[✓] Road split correction complete. Resuming tracking...\n");
+        //     continue;
+        // }
+
+        // --- [3] RECOVERY IF NO RIGHT IR IS ON BLACK ---
+        if (all_ir_off || !right_on_black) {
+            printf("\n[!] No IRs or no right IR on black. Stepping forward until at least one right IR sees black...\n");
+
+            int recovery_running = 1;
+            while (recovery_running) {
+                v_r1 = adc_read_channel(IR_1R);
+                v_r2 = adc_read_channel(IR_2R);
+                v_r3 = adc_read_channel(IR_3R);
+                v_l1 = adc_read_channel(IR_1L);
+                v_l2 = adc_read_channel(IR_2L);
+                v_l3 = adc_read_channel(IR_3L);
+
+                printf("Right IRs: R1=%.3f R2=%.3f R3=%.3f | Left IRs: L1=%.3f L2=%.3f L3=%.3f\n",
+                       v_r1, v_r2, v_r3, v_l1, v_l2, v_l3);
+
+                // Mid-recovery crossing detection
+                if ((v_l1 > LEFT_THRESHOLD) || (v_l2 > LEFT_THRESHOLD) || (v_l3 > LEFT_THRESHOLD)) {
+                    printf("[!] Crossing detected mid-recovery! Switching to crossing logic.\n");
+
+                    // while ((adc_read_channel(IR_1L) > THRESHOLD ||
+                    //         adc_read_channel(IR_2L) > THRESHOLD ||
+                    //         adc_read_channel(IR_3L) > THRESHOLD) && running) {
+                    //     small_step_left();
+                    // }
+
+                    // int right_remain = (adc_read_channel(IR_1R) > THRESHOLD ||
+                    //                     adc_read_channel(IR_2R) > THRESHOLD ||
+                    //                     adc_read_channel(IR_3R) > THRESHOLD);
+
+                    // if (!right_remain) {
+                    //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
+                    //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
+                    //         small_step_left();
+                    //     }
+                    // } else {
+                    //     while ((adc_read_channel(IR_1L) > THRESHOLD || adc_read_channel(IR_2L) > THRESHOLD ||
+                    //             adc_read_channel(IR_3L) > THRESHOLD || adc_read_channel(IR_1R) > THRESHOLD ||
+                    //             adc_read_channel(IR_2R) > THRESHOLD || adc_read_channel(IR_3R) > THRESHOLD) && running) {
+                    //         small_step_left();
+                    //     }
+
+                    //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
+                    //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
+                    //         small_step_left();
+                    //     }
+                    // }
+                    avoid_crater();
+                    printf("[✓] Mid-recovery crossing recovery complete. Resuming tracking...\n");
+                    break;
+                }
+
+                if (v_r1 > THRESHOLD || v_r2 > THRESHOLD || v_r3 > THRESHOLD) {
+                    printf("[✓] Right IR now sees black. Resuming normal follow...\n");
+                    break;
+                }
+
+                small_step_forward();
+                // sleep_msec(50);
+
+                fd_set readfds;
+                FD_ZERO(&readfds);
+                FD_SET(STDIN_FILENO, &readfds);
+                struct timeval timeout = {0, 0};
+                if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
+                    char c;
+                    if (read(STDIN_FILENO, &c, 1) > 0 && c == 'q') {
+                        printf("\nExiting follow_line during recovery.\n");
+                        running = 0;
+                        recovery_running = 0;
+                        break;
+                    }
+                }
+            }
+            continue;
+        }
+
+        // --- [4] RAW SENSOR FOLLOWING ---
         uint32_t raw_r1 = adc_read_channel_raw(IR_1R);
         uint32_t raw_r2 = adc_read_channel_raw(IR_2R);
         uint32_t raw_r3 = adc_read_channel_raw(IR_3R);
 
-        printf("\rRaw: R1=%4u  R2=%4u  R3=%4u    ", raw_r1, raw_r2, raw_r3);
+        printf("\rRaw: R1=%4u R2=%4u R3=%4u | L1=%.2f L2=%.2f L3=%.2f    ",
+               raw_r1, raw_r2, raw_r3, v_l1, v_l2, v_l3);
         fflush(stdout);
 
         if (raw_r2 > raw_r1 && raw_r2 > raw_r3) {
             small_step_forward();
-        }
-        else if (raw_r3 > raw_r2 && raw_r3 > raw_r1) {
-            printf("\nAdjusting RIGHT until R2 becomes dominant...\n");
-            while (!(raw_r2 > raw_r1 && raw_r2 > raw_r3) && running) {
+        } else if (raw_r3 > raw_r2 && raw_r3 > raw_r1) {
+            while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
+                     adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
+                smaller_step_forward();
                 small_step_right();
-                raw_r1 = adc_read_channel_raw(IR_1R);
-                raw_r2 = adc_read_channel_raw(IR_2R);
-                raw_r3 = adc_read_channel_raw(IR_3R);
-                printf("\rRaw: R1=%4u  R2=%4u  R3=%4u    ", raw_r1, raw_r2, raw_r3);
-                fflush(stdout);
-
-                // Check for exit
-                fd_set readfds;
-                FD_ZERO(&readfds);
-                FD_SET(STDIN_FILENO, &readfds);
-                struct timeval timeout = {0, 0};
-                if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
-                    char c;
-                    if (read(STDIN_FILENO, &c, 1) > 0 && c == 'q') {
-                        printf("\nExiting follow_line during left adjustment.\n");
-                        running = 0;
-                        break;
-                    }
-                }
             }
-        }
-        else if (raw_r1 > raw_r2 && raw_r1 > raw_r3) {
-            printf("\nAdjusting LEFT until R2 becomes dominant...\n");
-            while (!(raw_r2 > raw_r1 && raw_r2 > raw_r3) && running) {
+        } else if (raw_r1 > raw_r2 && raw_r1 > raw_r3) {
+            while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
+                     adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
                 small_step_left();
-                raw_r1 = adc_read_channel_raw(IR_1R);
-                raw_r2 = adc_read_channel_raw(IR_2R);
-                raw_r3 = adc_read_channel_raw(IR_3R);
-                printf("\rRaw: R1=%4u  R2=%4u  R3=%4u    ", raw_r1, raw_r2, raw_r3);
-                fflush(stdout);
-
-                // Check for exit
-                fd_set readfds;
-                FD_ZERO(&readfds);
-                FD_SET(STDIN_FILENO, &readfds);
-                struct timeval timeout = {0, 0};
-                if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
-                    char c;
-                    if (read(STDIN_FILENO, &c, 1) > 0 && c == 'q') {
-                        printf("\nExiting follow_line during right adjustment.\n");
-                        running = 0;
-                        break;
-                    }
-                }
             }
         } else {
-            // No clear max – wait briefly
-            printf("\nNo dominant sensor. Waiting...\n");
             sleep_msec(50);
         }
 
-        // Global non-blocking check for 'q'
+        // Exit key check
         fd_set readfds;
         FD_ZERO(&readfds);
         FD_SET(STDIN_FILENO, &readfds);
@@ -141,6 +329,7 @@ void follow_line() {
     adc_destroy();
     tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
 }
+
 
 
 void detect_line() {
@@ -167,33 +356,43 @@ void detect_line() {
                ir_1l, ir_2l, ir_3l, ir_1r, ir_2r, ir_3r);
         fflush(stdout);
 
-        // If 2R is on black, we're aligned
-        if (ir_2r > THRESHOLD) {
-            printf("\n2R is on black. Alignment complete.\n");
+        // ✅ New goal: any right IR sensor detects black
+        if (ir_1r > THRESHOLD || ir_2r > THRESHOLD || ir_3r > THRESHOLD) {
+            printf("\n[✓] One or more right IR sensors are on black. Alignment complete.\n");
             break;
         }
 
-        // If any left-side sensors are on black → turn left until 2R is on black
-        if (ir_1l > THRESHOLD || ir_2l > THRESHOLD || ir_3l > THRESHOLD) {
+        // If any left-side sensors are on black → turn left until ANY right IR is on black
+        if (ir_1l > LEFT_THRESHOLD || ir_2l > LEFT_THRESHOLD || ir_3l > LEFT_THRESHOLD) {
             stepper_reset();
-            printf("\nLeft sensors detected black. Turning LEFT until 2R is on black...\n");
+            printf("\n[↺] Left sensors detected black. Turning LEFT until right IRs see black...\n");
 
-            while (adc_read_channel(IR_2R) <= THRESHOLD) {
+            while (!(adc_read_channel(IR_1R) > THRESHOLD ||
+                     adc_read_channel(IR_2R) > THRESHOLD ||
+                     adc_read_channel(IR_3R) > THRESHOLD)) {
                 small_step_left();
-                printf("\r2R=%.2fV    ", adc_read_channel(IR_2R));
+                printf("\rRight IRs: R1=%.2f R2=%.2f R3=%.2f    ",
+                       adc_read_channel(IR_1R),
+                       adc_read_channel(IR_2R),
+                       adc_read_channel(IR_3R));
                 fflush(stdout);
             }
             break;
         }
 
-        // If R1 or R3 detect black, move forward until 2R is on black
+        // If R1 or R3 detect black → move forward until any right IR is on black
         if (ir_1r > THRESHOLD || ir_3r > THRESHOLD) {
             stepper_reset();
-            printf("\nR1 or R3 detected black. Moving FORWARD until 2R is on black...\n");
+            printf("\n[↑] R1 or R3 detected black. Moving FORWARD until right IRs see black...\n");
 
-            while (adc_read_channel(IR_2R) <= THRESHOLD) {
+            while (!(adc_read_channel(IR_1R) > THRESHOLD ||
+                     adc_read_channel(IR_2R) > THRESHOLD ||
+                     adc_read_channel(IR_3R) > THRESHOLD)) {
                 small_step_forward();
-                printf("\r2R=%.2fV    ", adc_read_channel(IR_2R));
+                printf("\rRight IRs: R1=%.2f R2=%.2f R3=%.2f    ",
+                       adc_read_channel(IR_1R),
+                       adc_read_channel(IR_2R),
+                       adc_read_channel(IR_3R));
                 fflush(stdout);
             }
             break;
@@ -262,6 +461,67 @@ void read_ir_sensors() {
     tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
 }
 
+void manual_mode() {
+    printf("Starting manual mode...\n");
+    printf("Controls:\n");
+    printf("  W: Forward 100 steps\n");
+    printf("  S: Backward 100 steps\n");
+    printf("  A: Turn left 100 steps\n");
+    printf("  D: Turn right 100 steps\n");
+    printf("  Q: Exit manual mode\n");
+
+    const int manual_distance = 100;
+    
+    struct termios old_settings, new_settings;
+    tcgetattr(STDIN_FILENO, &old_settings);
+    new_settings = old_settings;
+    new_settings.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
+
+    stepper_reset();
+    stepper_enable();
+    stepper_set_speed(20000, 20000);
+
+    int running = 1;
+    while (running) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        
+        struct timeval timeout = {0, 0};
+        if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
+            char c;
+            if (read(STDIN_FILENO, &c, 1) > 0) {
+                switch(c) {
+                    case 'w':
+                        printf("\r[↑] Moving forward %d steps...\n", manual_distance);
+                        stepper_steps(manual_distance, manual_distance);
+                        break;
+                    case 's':
+                        printf("\r[↓] Moving backward %d steps...\n", manual_distance);
+                        stepper_steps(-manual_distance, -manual_distance);
+                        break;
+                    case 'a':
+                        printf("\r[←] Turning left %d steps...\n", manual_distance);
+                        stepper_steps(manual_distance, -manual_distance);
+                        break;
+                    case 'd':
+                        printf("\r[→] Turning right %d steps...\n", manual_distance);
+                        stepper_steps(-manual_distance, manual_distance);
+                        break;
+                    case 'q':
+                        printf("\nExiting manual mode\n");
+                        running = 0;
+                        break;
+                }
+            }
+        }
+        sleep_msec(50);  // Small delay to prevent CPU hogging
+    }
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
+}
+
 int main() {
     // Initialize the PYNQ library and stepper
     pynq_init();
@@ -270,7 +530,9 @@ int main() {
     printf("IR Sensor Reading Program\n");
     printf("Commands:\n");
     printf("  i: Start reading IR sensors\n");
-    printf("  t: Turn 180 degrees mode\n");
+    printf("  f: Follow line mode\n");
+    printf("  d: Detect line mode\n");
+    printf("  m: Manual control mode\n");
     printf("  q: Quit program\n");
 
     char cmd;
@@ -291,6 +553,10 @@ int main() {
             case 'd':
                 printf("Starting detect line mode...\n");
                 detect_line();
+                break;
+            
+            case 'm':
+                manual_mode();
                 break;
             
             case 'q':

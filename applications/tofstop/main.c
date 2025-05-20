@@ -48,7 +48,7 @@ int main(void) {
     printf("Revision ID - %d\n", revision);
     fflush(NULL);
 
-    robot_move();
+    // robot_move();
     
     for (int i = 0; i < 1200; i++) {
         iDistance = tofReadDistance(&sensor);
