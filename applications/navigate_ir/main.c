@@ -7,6 +7,19 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <stepper.h>
+#include <pthread.h>
+#include <mosquitto.h>
+
+volatile double current_x = 0.0;
+volatile double current_y = 0.0;
+volatile double heading_deg = 0.0;  // in degrees
+pthread_mutex_t position_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define DEG_PER_STEP_DIFF (90.0 / 1230.0)  // degrees per diff step
+#define SMALL_TURN_DIFF 10.0              // from stepper_steps(5, -5)
+#define SMALL_STEP_DEGREES (DEG_PER_STEP_DIFF * SMALL_TURN_DIFF)
+
+#define FORWARD_STEP_SIZE 30.0  // same as stepper_steps(30, 30)
 
 // IR sensor pin definitions (ADC channels)
 #define IR_2L ADC0  // Middle - left (a0)
@@ -16,6 +29,74 @@
 #define IR_1R ADC4  // Closest to center - right (a4) -line follower
 #define IR_2R ADC5  // Middle - right (a5) - line follower
 
+// Add this at the top with other includes
+#include <math.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+void* uart_position_publisher(void* arg) {
+    (void)arg;  // Explicitly mark arg as unused to silence warning
+    // Setup UART
+    switchbox_init();
+    switchbox_set_pin(IO_AR0, SWB_UART0_RX);
+    switchbox_set_pin(IO_AR1, SWB_UART0_TX);
+    uart_init(UART0);
+    uart_reset_fifos(UART0);
+
+    // Setup MQTT
+    struct mosquitto *mosq = NULL;
+    mosquitto_lib_init();
+    mosq = mosquitto_new(NULL, true, NULL);
+    if (!mosq) {
+        fprintf(stderr, "Error: Out of memory.\n");
+        return NULL;
+    }
+
+    if (mosquitto_connect(mosq, "10.35.80.115", 1883, 60)) {
+        fprintf(stderr, "Unable to connect to MQTT broker.\n");
+        return NULL;
+    }
+
+    char msg[128];
+
+    while (1) {
+        pthread_mutex_lock(&position_mutex);
+        double x = current_x;
+        double y = current_y;
+        double h = heading_deg;
+        pthread_mutex_unlock(&position_mutex);
+
+        snprintf(msg, sizeof(msg), "{\"x\":%.2f,\"y\":%.2f,\"heading\":%.2f}", x, y, h);
+
+        // Send UART packet
+        uint32_t length = strlen(msg);
+        uint8_t* len_bytes = (uint8_t*)&length;
+        for (uint32_t i = 0; i < 4; i++) {
+            uart_send(UART0, len_bytes[i]);
+        }
+        for (uint32_t i = 0; i < length; i++) {
+            uart_send(UART0, msg[i]);
+        }
+
+        // Publish to MQTT
+        mosquitto_publish(mosq, NULL, "robot/position", strlen(msg), msg, 0, false);
+
+        sleep(1);  // Send every 1 second
+    }
+
+    // Cleanup MQTT
+    mosquitto_disconnect(mosq);
+    mosquitto_destroy(mosq);
+    mosquitto_lib_cleanup();
+
+    // Cleanup UART
+    uart_reset_fifos(UART0);
+    uart_destroy(UART0);
+    pthread_exit(NULL);
+}
+
+
 void right_90(void) {
     stepper_steps(-615, 615);
 }
@@ -23,34 +104,66 @@ void right_90(void) {
 #define THRESHOLD 0.19
 #define LEFT_THRESHOLD 0.3
 
+void normalize_heading() {
+    while (heading_deg >= 360.0) heading_deg -= 360.0;
+    while (heading_deg < 0.0) heading_deg += 360.0;
+}
+
 void small_step_left() {
     stepper_enable();
-    stepper_set_speed(15000, 15000);  // Slower for finer control
-    stepper_steps(5, -5);           // Small left turn
+    stepper_set_speed(15000, 15000);
+    stepper_steps(5, -5);
     sleep_msec(50);
+
+    pthread_mutex_lock(&position_mutex);
+    heading_deg += SMALL_STEP_DEGREES;
+    normalize_heading();
+    pthread_mutex_unlock(&position_mutex);
 }
+
 
 void small_step_forward() {
     stepper_enable();
     stepper_set_speed(30000, 30000);
-    stepper_steps(30, 30);
+    stepper_steps(FORWARD_STEP_SIZE, FORWARD_STEP_SIZE);
     sleep_msec(10);
-    // stepper_reset();
+
+    pthread_mutex_lock(&position_mutex);
+    double rad = heading_deg * (M_PI / 180.0);  // Fixed M_PI usage
+    current_x += cos(rad) * FORWARD_STEP_SIZE;
+    current_y += sin(rad) * FORWARD_STEP_SIZE;
+    pthread_mutex_unlock(&position_mutex);
 }
+
 
 void smaller_step_forward() {
     stepper_enable();
     stepper_set_speed(30000, 30000);
     stepper_steps(10, 10);
     sleep_msec(10);
+
+    pthread_mutex_lock(&position_mutex);
+    double rad = heading_deg * (M_PI / 180.0);  // Fixed M_PI usage
+    current_x += cos(rad) * 10.0;
+    current_y += sin(rad) * 10.0;
+    pthread_mutex_unlock(&position_mutex);
 }
+
 
 void small_step_right() {
     stepper_enable();
     stepper_set_speed(15000, 15000);
-    stepper_steps(-5, 5);  // Right turn: left backward, right forward
+    stepper_steps(-5, 5);
     sleep_msec(50);
+
+    pthread_mutex_lock(&position_mutex);
+    heading_deg -= SMALL_STEP_DEGREES;
+    normalize_heading();
+    pthread_mutex_unlock(&position_mutex);
 }
+
+
+
 
 void avoid_crater() {
     printf("\n[!] Crater detected — initiating avoidance maneuver...\n");
@@ -62,11 +175,20 @@ void avoid_crater() {
     printf("[←] Reversing 300 steps...\n");
     stepper_set_speed(20000, 20000);
     stepper_steps(-300, -300);
+    pthread_mutex_lock(&position_mutex);
+double rad = heading_deg * M_PI / 180.0;
+current_x -= cos(rad) * 300.0;
+current_y -= sin(rad) * 300.0;
+pthread_mutex_unlock(&position_mutex);
     sleep_msec(1000);
 
     // 2. Turn 90 degrees LEFT
     printf("[↺] Turning 90 degrees left...\n");
     stepper_steps(615, -615);
+    pthread_mutex_lock(&position_mutex);
+    heading_deg += 90.0;
+    normalize_heading();
+    pthread_mutex_unlock(&position_mutex);
     sleep_msec(1000);
 
     // 3. Move forward using small_step_forward() up to ~1300 steps total
@@ -102,6 +224,10 @@ void avoid_crater() {
     // 4. Turn 90 degrees RIGHT
     printf("[↻] Turning 90 degrees right...\n");
     stepper_steps(-615, 615);
+    pthread_mutex_lock(&position_mutex);
+    heading_deg -= 90.0;
+    normalize_heading();
+    pthread_mutex_unlock(&position_mutex);
     sleep_msec(1000);
 
     // 5. small_step_forward until any of R1, R2, R3 are ON
@@ -158,56 +284,10 @@ void follow_line() {
         if (left_on_black) {
             printf("\n[!] Crossing detected via left IR. Entering correction...\n");
 
-            // while ((adc_read_channel(IR_1L) > THRESHOLD ||
-            //         adc_read_channel(IR_2L) > THRESHOLD ||
-            //         adc_read_channel(IR_3L) > THRESHOLD) && running) {
-            //     small_step_left();
-            // }
-
-            // int right_remain = (adc_read_channel(IR_1R) > THRESHOLD ||
-            //                     adc_read_channel(IR_2R) > THRESHOLD ||
-            //                     adc_read_channel(IR_3R) > THRESHOLD);
-
-            // if (!right_remain) {
-            //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
-            //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
-            //         small_step_left();
-            //     }
-            // } else {
-            //     while ((adc_read_channel(IR_1L) > THRESHOLD || adc_read_channel(IR_2L) > THRESHOLD ||
-            //             adc_read_channel(IR_3L) > THRESHOLD || adc_read_channel(IR_1R) > THRESHOLD ||
-            //             adc_read_channel(IR_2R) > THRESHOLD || adc_read_channel(IR_3R) > THRESHOLD) && running) {
-            //         small_step_left();
-            //     }
-
-            //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
-            //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
-            //         small_step_left();
-            //     }
-            // }
             avoid_crater();
             printf("[✓] Crossing recovery complete. Resuming tracking...\n");
             continue;
         }
-
-        // --- [2] ROAD SPLIT DETECTION (same priority as crossing) ---
-        // int right_on_count = (v_r1 > THRESHOLD) + (v_r2 > THRESHOLD) + (v_r3 > THRESHOLD);
-        // if ((v_r1 > THRESHOLD && v_r2 > THRESHOLD) || right_on_count >= 3) {
-        //     printf("\n[!] Road split detected (R1 and R2 on black). Executing correction...\n");
-
-        //     // Step LEFT until R1 is OFF
-        //     while (adc_read_channel(IR_1R) > THRESHOLD && running) {
-        //         small_step_left();
-        //     }
-
-        //     // Step LEFT until R2 is ON
-        //     while (adc_read_channel(IR_2R) <= THRESHOLD && running) {
-        //         small_step_left();
-        //     }
-
-        //     printf("[✓] Road split correction complete. Resuming tracking...\n");
-        //     continue;
-        // }
 
         // --- [3] RECOVERY IF NO RIGHT IR IS ON BLACK ---
         if (all_ir_off || !right_on_black) {
@@ -229,33 +309,6 @@ void follow_line() {
                 if ((v_l1 > LEFT_THRESHOLD) || (v_l2 > LEFT_THRESHOLD) || (v_l3 > LEFT_THRESHOLD)) {
                     printf("[!] Crossing detected mid-recovery! Switching to crossing logic.\n");
 
-                    // while ((adc_read_channel(IR_1L) > THRESHOLD ||
-                    //         adc_read_channel(IR_2L) > THRESHOLD ||
-                    //         adc_read_channel(IR_3L) > THRESHOLD) && running) {
-                    //     small_step_left();
-                    // }
-
-                    // int right_remain = (adc_read_channel(IR_1R) > THRESHOLD ||
-                    //                     adc_read_channel(IR_2R) > THRESHOLD ||
-                    //                     adc_read_channel(IR_3R) > THRESHOLD);
-
-                    // if (!right_remain) {
-                    //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
-                    //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
-                    //         small_step_left();
-                    //     }
-                    // } else {
-                    //     while ((adc_read_channel(IR_1L) > THRESHOLD || adc_read_channel(IR_2L) > THRESHOLD ||
-                    //             adc_read_channel(IR_3L) > THRESHOLD || adc_read_channel(IR_1R) > THRESHOLD ||
-                    //             adc_read_channel(IR_2R) > THRESHOLD || adc_read_channel(IR_3R) > THRESHOLD) && running) {
-                    //         small_step_left();
-                    //     }
-
-                    //     while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
-                    //              adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
-                    //         small_step_left();
-                    //     }
-                    // }
                     avoid_crater();
                     printf("[✓] Mid-recovery crossing recovery complete. Resuming tracking...\n");
                     break;
@@ -361,12 +414,14 @@ void detect_line() {
     adc_init();
     stepper_reset();
     stepper_enable();
-    stepper_set_speed(20000, 20000);
-    stepper_steps(20000, 20000);  // Start moving forward
+    // stepper_set_speed(20000, 20000);
+    // stepper_steps(20000, 20000);  // Start moving forward
 
     int running = 1;
     while (running) {
         // Read all sensors
+
+        small_step_forward();
         double ir_1l = adc_read_channel(IR_1L);
         double ir_2l = adc_read_channel(IR_2L);
         double ir_3l = adc_read_channel(IR_3L);
@@ -548,6 +603,9 @@ int main() {
     // Initialize the PYNQ library and stepper
     pynq_init();
     stepper_init();  // Single stepper initialization
+    pthread_t uart_thread;
+    pthread_create(&uart_thread, NULL, uart_position_publisher, NULL);
+
 
     printf("IR Sensor Reading Program\n");
     printf("Commands:\n");
