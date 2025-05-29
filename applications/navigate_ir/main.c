@@ -9,17 +9,36 @@
 #include <stepper.h>
 #include <pthread.h>
 #include <mosquitto.h>
+#include <math.h>
+#include <ctype.h>
 
+
+#define THRESHOLD 0.18
+#define LEFT_THRESHOLD 0.3
+
+
+#define IR_2L ADC0  // Middle - left (a0)
+#define IR_1L ADC3  // Closest to center - left (a1)
+#define IR_3L ADC2  // Furthest from center - left (a2)
+#define IR_3R ADC1  // Furthest from center - right (a3) -line follower
+#define IR_1R ADC4  // Closest to center - right (a4) -line follower
+#define IR_2R ADC5  // Middle - right (a5) - line follower
+
+
+
+// Position tracking globals
 volatile double current_x = 0.0;
 volatile double current_y = 0.0;
 volatile double heading_deg = 0.0;  // in degrees
+
 pthread_mutex_t position_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define DEG_PER_STEP_DIFF (90.0 / 1230.0)  // degrees per diff step
-#define SMALL_TURN_DIFF 10.0              // from stepper_steps(5, -5)
-#define SMALL_STEP_DEGREES (DEG_PER_STEP_DIFF * SMALL_TURN_DIFF)
-
-#define FORWARD_STEP_SIZE 30.0  // same as stepper_steps(30, 30)
+// Simple linear scaling based on empirical measurement
+#define STEPS_PER_90_DEGREES 625
+#define M_PI 3.14159265358979323846
+// For 90° turn: left=625, right=-625, difference = 625-(-625) = 1250
+#define STEP_DIFFERENCE_PER_90_DEGREES (STEPS_PER_90_DEGREES * 2)  // = 1250
+#define DEGREES_PER_STEP_DIFFERENCE (90.0 / STEP_DIFFERENCE_PER_90_DEGREES)  // = 0.072 degrees per step difference
 
 // IR sensor pin definitions (ADC channels)
 #define IR_2L ADC0  // Middle - left (a0)
@@ -29,11 +48,71 @@ pthread_mutex_t position_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define IR_1R ADC4  // Closest to center - right (a4) -line follower
 #define IR_2R ADC5  // Middle - right (a5) - line follower
 
-// Add this at the top with other includes
-#include <math.h>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+// Add these calibration constants at the top of your file with other defines
+#define RIGHT_TURN_ADJUSTMENT 4   // Empirically determined offset for right turns
+#define LEFT_TURN_ADJUSTMENT 2     // Empirically determined offset for left turns
+
+// RIGHT 90° turn is 607 steps each wheel = 1214 step difference
+#define RIGHT_STEP_DIFFERENCE_PER_90 ((STEPS_PER_90_DEGREES - RIGHT_TURN_ADJUSTMENT) * 2)  // = 1214
+// LEFT 90° turn is 622 steps each wheel = 1244 step difference
+#define LEFT_STEP_DIFFERENCE_PER_90 ((STEPS_PER_90_DEGREES - LEFT_TURN_ADJUSTMENT) * 2)  // = 1244
+
+// Calculate degrees per step differently for left and right turns
+#define RIGHT_DEGREES_PER_STEP_DIFF (90.0 / RIGHT_STEP_DIFFERENCE_PER_90)  // = 90/1214 = 0.0741
+#define LEFT_DEGREES_PER_STEP_DIFF (90.0 / LEFT_STEP_DIFFERENCE_PER_90)    // = 90/1244 = 0.0723
+
+
+void get_steps_and_restart(int16_t* left_steps, int16_t* right_steps) {
+    stepper_get_completed_steps(left_steps, right_steps);
+    stepper_reset();
+    stepper_enable();
+}
+
+
+// Updated heading calculation that accounts fora different left/right calibration
+double compute_heading_change(int left_steps, int right_steps) {
+    // Calculate step difference
+    int step_difference = right_steps - left_steps;
+    
+    // Apply appropriate conversion factor based on turn direction
+    if (step_difference > 0) {
+        // Right turn - use the right turn calibration
+        return step_difference * RIGHT_DEGREES_PER_STEP_DIFF;
+    } else if (step_difference < 0) {
+        // Left turn - use the left turn calibration
+        return step_difference * LEFT_DEGREES_PER_STEP_DIFF;
+    } else {
+        // No turn (straight line)
+        return 0.0;
+    }
+}
+
+// This function calculates heading change with motor imperfection adjustments
+double compute_heading_change_calibrated(int16_t left_steps, int16_t right_steps, char direction) {
+    // Apply calibration based on turn direction
+    if (direction == 'd' || direction == 'D') {  // Right turn
+        // Adjust steps to match calibrated right turn values
+        double adjustment_factor = (double)RIGHT_TURN_ADJUSTMENT / STEPS_PER_90_DEGREES;
+        double adjusted_steps = abs(left_steps) * (1.0 - adjustment_factor);
+        return compute_heading_change(-adjusted_steps, adjusted_steps);
+    } 
+    else if (direction == 'a' || direction == 'A') {  // Left turn
+        // Adjust steps to match calibrated left turn values
+        double adjustment_factor = (double)LEFT_TURN_ADJUSTMENT / STEPS_PER_90_DEGREES;
+        double adjusted_steps = abs(left_steps) * (1.0 - adjustment_factor);
+        return compute_heading_change(adjusted_steps, -adjusted_steps);
+    }
+    else {
+        // Forward/backward - no calibration needed
+        return compute_heading_change(left_steps, right_steps);
+    }
+}
+
+void normalize_heading() {
+    while (heading_deg >= 360.0) heading_deg -= 360.0;
+    while (heading_deg < 0.0) heading_deg += 360.0;
+}
+
 
 void* uart_position_publisher(void* arg) {
     (void)arg;  // Explicitly mark arg as unused to silence warning
@@ -45,6 +124,7 @@ void* uart_position_publisher(void* arg) {
     uart_reset_fifos(UART0);
 
     // Setup MQTT
+    printf("Connecting to MQTT broker...\n");
     struct mosquitto *mosq = NULL;
     mosquitto_lib_init();
     mosq = mosquitto_new(NULL, true, NULL);
@@ -53,10 +133,12 @@ void* uart_position_publisher(void* arg) {
         return NULL;
     }
 
-    if (mosquitto_connect(mosq, "10.35.80.115", 1883, 60)) {
+    if (mosquitto_connect(mosq, "192.168.101.6", 1883, 60)) {
         fprintf(stderr, "Unable to connect to MQTT broker.\n");
         return NULL;
     }
+    printf("[✓] Successfully connected to MQTT broker at 192.168.101.4:1883\n");
+
 
     char msg[128];
 
@@ -97,392 +179,139 @@ void* uart_position_publisher(void* arg) {
 }
 
 
-void right_90(void) {
-    stepper_steps(-615, 615);
-}
-
-#define THRESHOLD 0.19
-#define LEFT_THRESHOLD 0.3
-
-void normalize_heading() {
-    while (heading_deg >= 360.0) heading_deg -= 360.0;
-    while (heading_deg < 0.0) heading_deg += 360.0;
-}
-
-void small_step_left() {
-    stepper_enable();
-    stepper_set_speed(15000, 15000);
-    stepper_steps(5, -5);
-    sleep_msec(50);
-
+// Helper function to update position based on completed steps
+void update_position_from_steps(int16_t left_steps, int16_t right_steps, char movement_type) {
     pthread_mutex_lock(&position_mutex);
-    heading_deg += SMALL_STEP_DEGREES;
-    normalize_heading();
-    pthread_mutex_unlock(&position_mutex);
-}
-
-
-void small_step_forward() {
-    stepper_enable();
-    stepper_set_speed(30000, 30000);
-    stepper_steps(FORWARD_STEP_SIZE, FORWARD_STEP_SIZE);
-    sleep_msec(10);
-
-    pthread_mutex_lock(&position_mutex);
-    double rad = heading_deg * (M_PI / 180.0);  // Fixed M_PI usage
-    current_x += cos(rad) * FORWARD_STEP_SIZE;
-    current_y += sin(rad) * FORWARD_STEP_SIZE;
-    pthread_mutex_unlock(&position_mutex);
-}
-
-
-void smaller_step_forward() {
-    stepper_enable();
-    stepper_set_speed(30000, 30000);
-    stepper_steps(10, 10);
-    sleep_msec(10);
-
-    pthread_mutex_lock(&position_mutex);
-    double rad = heading_deg * (M_PI / 180.0);  // Fixed M_PI usage
-    current_x += cos(rad) * 10.0;
-    current_y += sin(rad) * 10.0;
-    pthread_mutex_unlock(&position_mutex);
-}
-
-
-void small_step_right() {
-    stepper_enable();
-    stepper_set_speed(15000, 15000);
-    stepper_steps(-5, 5);
-    sleep_msec(50);
-
-    pthread_mutex_lock(&position_mutex);
-    heading_deg -= SMALL_STEP_DEGREES;
-    normalize_heading();
-    pthread_mutex_unlock(&position_mutex);
-}
-
-
-
-
-void avoid_crater() {
-    printf("\n[!] Crater detected — initiating avoidance maneuver...\n");
-
-    stepper_reset();
-    stepper_enable();
-
-    // 1. Go 300 steps backward
-    printf("[←] Reversing 300 steps...\n");
-    stepper_set_speed(20000, 20000);
-    stepper_steps(-300, -300);
-    pthread_mutex_lock(&position_mutex);
-double rad = heading_deg * M_PI / 180.0;
-current_x -= cos(rad) * 300.0;
-current_y -= sin(rad) * 300.0;
-pthread_mutex_unlock(&position_mutex);
-    sleep_msec(1000);
-
-    // 2. Turn 90 degrees LEFT
-    printf("[↺] Turning 90 degrees left...\n");
-    stepper_steps(615, -615);
-    pthread_mutex_lock(&position_mutex);
-    heading_deg += 90.0;
-    normalize_heading();
-    pthread_mutex_unlock(&position_mutex);
-    sleep_msec(1000);
-
-    // 3. Move forward using small_step_forward() up to ~1300 steps total
-    int total_steps = 0;
-    printf("[↑] Moving forward incrementally (up to 1300 steps)...\n");
-
-    while (total_steps < 1300) {
-        double v_r1 = adc_read_channel(IR_1R);
-        double v_r2 = adc_read_channel(IR_2R);
-        double v_r3 = adc_read_channel(IR_3R);
-        double v_l1 = adc_read_channel(IR_1L);
-        double v_l2 = adc_read_channel(IR_2L);
-        double v_l3 = adc_read_channel(IR_3L);
-
-        // If right IR sees black → stop and return (line found)
-        if (v_r1 > THRESHOLD || v_r2 > THRESHOLD || v_r3 > THRESHOLD) {
-            printf("[✓] Right IR sees black — line reacquired. Exiting crater avoidance.\n");
-            return;
-        }
-
-        // If left IR sees black → restart crater avoidance
-        if (v_l1 > LEFT_THRESHOLD || v_l2 > LEFT_THRESHOLD || v_l3 > LEFT_THRESHOLD) {
-            printf("[↺] Left IR sees black during forward — restarting crater avoidance...\n");
-            avoid_crater();  // recursive call
-            return;          // terminate this instance so old one doesn't continue
-        }
-
-        small_step_forward();
-        total_steps += 40;  // each small_step_forward does 10 steps
-        sleep_msec(100);
+    double rad = heading_deg * (M_PI / 180.0);
+    
+    if (movement_type == 'W' || movement_type == 'w' || movement_type == 'S' || movement_type == 's') {
+        // Forward/backward - we use left_steps for distance as both wheels should move the same
+        // The sign of left_steps already indicates direction, so we just add (+ for forward, - for backward)
+        current_x += cos(rad) * left_steps;
+        current_y += sin(rad) * left_steps;
+    } else if (movement_type == 'A' || movement_type == 'a' || movement_type == 'D' || movement_type == 'd') {
+        // Turning - use calibrated heading calculation
+        double heading_change = compute_heading_change(left_steps, right_steps);
+        heading_deg += heading_change;
+        normalize_heading();
     }
-
-    // 4. Turn 90 degrees RIGHT
-    printf("[↻] Turning 90 degrees right...\n");
-    stepper_steps(-615, 615);
-    pthread_mutex_lock(&position_mutex);
-    heading_deg -= 90.0;
-    normalize_heading();
+    
     pthread_mutex_unlock(&position_mutex);
-    sleep_msec(1000);
+}
 
-    // 5. small_step_forward until any of R1, R2, R3 are ON
-    printf("[→] Searching for line (right IRs)...\n");
-
-    while (1) {
-        double v_r1 = adc_read_channel(IR_1R);
-        double v_r2 = adc_read_channel(IR_2R);
-        double v_r3 = adc_read_channel(IR_3R);
-
-        printf("Right IRs: R1=%.3f R2=%.3f R3=%.3f\n", v_r1, v_r2, v_r3);
-
-        if (v_r1 > THRESHOLD || v_r2 > THRESHOLD || v_r3 > THRESHOLD) {
-            printf("[✓] Line reacquired by right IR. Exiting crater avoidance.\n");
-            break;
-        }
-
-        small_step_forward();
-        sleep_msec(50);
-    }
+// Helper function to print current position and heading
+void print_position_status(const char* prefix) {
+    pthread_mutex_lock(&position_mutex);
+    printf("%s (%.2f, %.2f), Heading: %.2f°\n", 
+           prefix ? prefix : "Position:", current_x, current_y, heading_deg);
+    pthread_mutex_unlock(&position_mutex);
 }
 
 
-void follow_line() {
-    printf("Starting follow_line mode (raw + cross-detection + recovery)...\n");
 
+void manual_mode() {
+    printf("Starting manual mode (Snake game style)...\n");
+    printf("Controls:\n");
+    printf("  W: Start 20K steps forward\n");
+    printf("  S: Start 20K steps backward\n");
+    printf("  A: Start 20K steps left turn\n");
+    printf("  D: Start 20K steps right turn\n");
+    printf("  Q: Exit manual mode\n");
+    printf("Press any direction key to change direction immediately\n");
+    
     struct termios old_settings, new_settings;
     tcgetattr(STDIN_FILENO, &old_settings);
     new_settings = old_settings;
     new_settings.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
 
-    adc_init();
     stepper_reset();
     stepper_enable();
+    
+    // Track last completed steps for position/heading update
+    int16_t completed_left = 0;
+    int16_t completed_right = 0;
+    char last_direction = '\0';
 
     int running = 1;
     while (running) {
-        // --- Sensor reads ---
-        double v_l1 = adc_read_channel(IR_1L);
-        double v_l2 = adc_read_channel(IR_2L);
-        double v_l3 = adc_read_channel(IR_3L);
-        double v_r1 = adc_read_channel(IR_1R);
-        double v_r2 = adc_read_channel(IR_2R);
-        double v_r3 = adc_read_channel(IR_3R);
-
-        printf("Left IR values: v_l1=%.3f, v_l2=%.3f, v_l3=%.3f\n", v_l1, v_l2, v_l3);
-
-        int left_on_black = (v_l1 > LEFT_THRESHOLD) || (v_l2 > LEFT_THRESHOLD) || (v_l3 > LEFT_THRESHOLD);
-        int right_on_black = (v_r1 > THRESHOLD) || (v_r2 > THRESHOLD) || (v_r3 > THRESHOLD);
-        int all_ir_off = !left_on_black && !right_on_black;
-
-        // --- [1] CROSSING DETECTION (highest priority) ---
-        if (left_on_black) {
-            printf("\n[!] Crossing detected via left IR. Entering correction...\n");
-
-            avoid_crater();
-            printf("[✓] Crossing recovery complete. Resuming tracking...\n");
-            continue;
-        }
-
-        // --- [3] RECOVERY IF NO RIGHT IR IS ON BLACK ---
-        if (all_ir_off || !right_on_black) {
-            printf("\n[!] No IRs or no right IR on black. Stepping forward until at least one right IR sees black...\n");
-
-            int recovery_running = 1;
-            while (recovery_running) {
-                v_r1 = adc_read_channel(IR_1R);
-                v_r2 = adc_read_channel(IR_2R);
-                v_r3 = adc_read_channel(IR_3R);
-                v_l1 = adc_read_channel(IR_1L);
-                v_l2 = adc_read_channel(IR_2L);
-                v_l3 = adc_read_channel(IR_3L);
-
-                printf("Right IRs: R1=%.3f R2=%.3f R3=%.3f | Left IRs: L1=%.3f L2=%.3f L3=%.3f\n",
-                       v_r1, v_r2, v_r3, v_l1, v_l2, v_l3);
-
-                // Mid-recovery crossing detection
-                if ((v_l1 > LEFT_THRESHOLD) || (v_l2 > LEFT_THRESHOLD) || (v_l3 > LEFT_THRESHOLD)) {
-                    printf("[!] Crossing detected mid-recovery! Switching to crossing logic.\n");
-
-                    avoid_crater();
-                    printf("[✓] Mid-recovery crossing recovery complete. Resuming tracking...\n");
-                    break;
-                }
-
-                if (v_r1 > THRESHOLD || v_r2 > THRESHOLD || v_r3 > THRESHOLD) {
-                    printf("[✓] Right IR now sees black. Resuming normal follow...\n");
-                    break;
-                }
-
-                small_step_forward();
-                // sleep_msec(50);
-
-                fd_set readfds;
-                FD_ZERO(&readfds);
-                FD_SET(STDIN_FILENO, &readfds);
-                struct timeval timeout = {0, 0};
-                if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
-                    char c;
-                    if (read(STDIN_FILENO, &c, 1) > 0 && c == 'q') {
-                        printf("\nExiting follow_line during recovery.\n");
-                        running = 0;
-                        recovery_running = 0;
-                        break;
-                    }
-                }
-            }
-            continue;
-        }
-
-        // --- [4] RAW SENSOR FOLLOWING ---
-        uint32_t raw_r1 = adc_read_channel_raw(IR_1R);
-        uint32_t raw_r2 = adc_read_channel_raw(IR_2R);
-        uint32_t raw_r3 = adc_read_channel_raw(IR_3R);
-
-        printf("\rRaw: R1=%4u R2=%4u R3=%4u | L1=%.2f L2=%.2f L3=%.2f    ",
-               raw_r1, raw_r2, raw_r3, v_l1, v_l2, v_l3);
-        fflush(stdout);
-
-        if (raw_r2 > raw_r1 && raw_r2 > raw_r3) {
-            small_step_forward();
-        } else if (raw_r3 > raw_r2 && raw_r3 > raw_r1) {
-            while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
-                     adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
-                // Check for crossing before making the turn
-                double v_l1 = adc_read_channel(IR_1L);
-                double v_l2 = adc_read_channel(IR_2L);
-                double v_l3 = adc_read_channel(IR_3L);
-                
-                if (v_l1 > LEFT_THRESHOLD || v_l2 > LEFT_THRESHOLD || v_l3 > LEFT_THRESHOLD) {
-                    printf("[!] Crossing detected during right turn. Switching to crater avoidance...\n");
-                    avoid_crater();
-                    break;
-                }
-                
-                smaller_step_forward();
-                small_step_right();
-            }
-        } else if (raw_r1 > raw_r2 && raw_r1 > raw_r3) {
-            while (!(adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_1R) &&
-                     adc_read_channel_raw(IR_2R) > adc_read_channel_raw(IR_3R)) && running) {
-                // Check for crossing before making the turn
-                double v_l1 = adc_read_channel(IR_1L);
-                double v_l2 = adc_read_channel(IR_2L);
-                double v_l3 = adc_read_channel(IR_3L);
-                
-                if (v_l1 > LEFT_THRESHOLD || v_l2 > LEFT_THRESHOLD || v_l3 > LEFT_THRESHOLD) {
-                    printf("[!] Crossing detected during left turn. Switching to crater avoidance...\n");
-                    avoid_crater();
-                    break;
-                }
-                
-                small_step_left();
-            }
-        } else {
-            sleep_msec(50);
-        }
-
-        // Exit key check
         fd_set readfds;
         FD_ZERO(&readfds);
         FD_SET(STDIN_FILENO, &readfds);
-        struct timeval timeout = {0, 0};
+        
+        struct timeval timeout = {0, 50000}; // 50ms timeout
         if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
             char c;
-            if (read(STDIN_FILENO, &c, 1) > 0 && c == 'q') {
-                printf("\nExiting follow_line mode.\n");
-                running = 0;
+            if (read(STDIN_FILENO, &c, 1) > 0) {
+                // Get completed steps before changing direction
+                if (last_direction != '\0') {
+                    // Replace these individual calls:
+                    // stepper_get_completed_steps(&completed_left, &completed_right);
+                    // stepper_reset();
+                    // stepper_enable();
+                    
+                    // With the helper function:
+                    get_steps_and_restart(&completed_left, &completed_right);
+                    
+                    update_position_from_steps(completed_left, completed_right, last_direction);
+                }
+                
+                // Set new direction with calibrated steps for turns
+                switch(c) {
+                    case 'w':
+                        printf("\r[↑] Moving forward 20K steps...                     \n");
+                        stepper_set_speed(30000, 30000);
+                        stepper_steps(20000, 20000);
+                        last_direction = 'w';
+                        break;
+                    case 's':
+                        printf("\r[↓] Moving backward 20K steps...                    \n");
+                        stepper_set_speed(30000, 30000);
+                        stepper_steps(-20000, -20000);
+                        last_direction = 's';
+                        break;
+                    case 'a':
+                        // Left turn with adjustment
+                        printf("\r[←] Turning left 20K steps (calibrated)...          \n");
+                        stepper_set_speed(30000, 30000);
+                        // Apply same adjustment ratio as in 90° turn
+                        int16_t left_steps = 20000 - (20000 * LEFT_TURN_ADJUSTMENT / STEPS_PER_90_DEGREES);
+                        int16_t right_steps = -(20000 - (20000 * LEFT_TURN_ADJUSTMENT / STEPS_PER_90_DEGREES));
+                        stepper_steps(left_steps, right_steps);
+                        last_direction = 'a';
+                        break;
+                    case 'd':
+                        // Right turn with adjustment
+                        printf("\r[→] Turning right 20K steps (calibrated)...         \n");
+                        stepper_set_speed(30000, 30000);
+                        // Apply same adjustment ratio as in 90° turn
+                        int16_t r_left_steps = -(20000 - (20000 * RIGHT_TURN_ADJUSTMENT / STEPS_PER_90_DEGREES));
+                        int16_t r_right_steps = 20000 - (20000 * RIGHT_TURN_ADJUSTMENT / STEPS_PER_90_DEGREES);
+                        stepper_steps(r_left_steps, r_right_steps);
+                        last_direction = 'd';
+                        break;
+                    case 'q':
+                        printf("\nExiting manual mode\n");
+                        running = 0;
+                        break;
+                }
+                
+                // Print current position and heading
+                if (running) {
+                    pthread_mutex_lock(&position_mutex);
+                    printf("Position: (%.2f, %.2f), Heading: %.2f°\n", 
+                           current_x, current_y, heading_deg);
+                    pthread_mutex_unlock(&position_mutex);
+                }
             }
         }
     }
 
-    adc_destroy();
+    // Final stop
+    stepper_reset();
+    stepper_disable();
     tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
 }
-
-
-
-void detect_line() {
-    printf("Starting detect_line mode...\n");
-
-    // Initialize
-    adc_init();
-    stepper_reset();
-    stepper_enable();
-    // stepper_set_speed(20000, 20000);
-    // stepper_steps(20000, 20000);  // Start moving forward
-
-    int running = 1;
-    while (running) {
-        // Read all sensors
-
-        small_step_forward();
-        double ir_1l = adc_read_channel(IR_1L);
-        double ir_2l = adc_read_channel(IR_2L);
-        double ir_3l = adc_read_channel(IR_3L);
-        double ir_1r = adc_read_channel(IR_1R);
-        double ir_2r = adc_read_channel(IR_2R);
-        double ir_3r = adc_read_channel(IR_3R);
-
-        printf("\rIRs: 1L=%.2f 2L=%.2f 3L=%.2f | 1R=%.2f 2R=%.2f 3R=%.2f    ",
-               ir_1l, ir_2l, ir_3l, ir_1r, ir_2r, ir_3r);
-        fflush(stdout);
-
-        // ✅ New goal: any right IR sensor detects black
-        if (ir_1r > THRESHOLD || ir_2r > THRESHOLD || ir_3r > THRESHOLD) {
-            printf("\n[✓] One or more right IR sensors are on black. Alignment complete.\n");
-            break;
-        }
-
-        // If any left-side sensors are on black → turn left until ANY right IR is on black
-        if (ir_1l > LEFT_THRESHOLD || ir_2l > LEFT_THRESHOLD || ir_3l > LEFT_THRESHOLD) {
-            stepper_reset();
-            printf("\n[↺] Left sensors detected black. Turning LEFT until right IRs see black...\n");
-
-            while (!(adc_read_channel(IR_1R) > THRESHOLD ||
-                     adc_read_channel(IR_2R) > THRESHOLD ||
-                     adc_read_channel(IR_3R) > THRESHOLD)) {
-                small_step_left();
-                printf("\rRight IRs: R1=%.2f R2=%.2f R3=%.2f    ",
-                       adc_read_channel(IR_1R),
-                       adc_read_channel(IR_2R),
-                       adc_read_channel(IR_3R));
-                fflush(stdout);
-            }
-            break;
-        }
-
-        // If R1 or R3 detect black → move forward until any right IR is on black
-        if (ir_1r > THRESHOLD || ir_3r > THRESHOLD) {
-            stepper_reset();
-            printf("\n[↑] R1 or R3 detected black. Moving FORWARD until right IRs see black...\n");
-
-            while (!(adc_read_channel(IR_1R) > THRESHOLD ||
-                     adc_read_channel(IR_2R) > THRESHOLD ||
-                     adc_read_channel(IR_3R) > THRESHOLD)) {
-                small_step_forward();
-                printf("\rRight IRs: R1=%.2f R2=%.2f R3=%.2f    ",
-                       adc_read_channel(IR_1R),
-                       adc_read_channel(IR_2R),
-                       adc_read_channel(IR_3R));
-                fflush(stdout);
-            }
-            break;
-        }
-
-        sleep_msec(50);
-    }
-
-    printf("\nAlignment complete!\n");
-    stepper_disable();
-    adc_destroy();
-}
-
 
 void read_ir_sensors() {
     double ir_values[6];
@@ -496,7 +325,6 @@ void read_ir_sensors() {
     new_settings.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
     
-    adc_init();
     
     printf("\033[2J\033[H");
     printf("IR Sensor Readings (press 'q' to exit):\n\n");
@@ -534,75 +362,190 @@ void read_ir_sensors() {
         sleep_msec(100);
     }
     
-    adc_destroy();
     tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
 }
+void align_line() {
+    stepper_enable();
 
-void manual_mode() {
-    printf("Starting manual mode...\n");
-    printf("Controls:\n");
-    printf("  W: Forward 100 steps\n");
-    printf("  S: Backward 100 steps\n");
-    printf("  A: Turn left 100 steps\n");
-    printf("  D: Turn right 100 steps\n");
-    printf("  Q: Exit manual mode\n");
-
-    const int manual_distance = 100;
+    printf("\n[↺] Aligning with line: turning left until IR_2R goes OFF...\n");
+    // Turn left until IR_2R becomes OFF (below threshold)
+    stepper_set_speed(30000, 30000);
+    stepper_steps(5000, 5000); // Start a left turn (arbitrary large step count)
+    while (1) {
+        double ir_r2 = adc_read_channel(IR_2R);
+        double ir_r1 = adc_read_channel(IR_1R);
+        double ir_r3 = adc_read_channel(IR_3R);
+        if (ir_r2 < THRESHOLD && ir_r1 < THRESHOLD && ir_r3 < THRESHOLD) {
+            printf("[✓] IR_2R is OFF (%.2fV < %.2f). Stopping turn.\n", ir_r2, THRESHOLD);
+            break;
+        }
+        sleep_msec(1);
+    }
     
-    struct termios old_settings, new_settings;
-    tcgetattr(STDIN_FILENO, &old_settings);
-    new_settings = old_settings;
-    new_settings.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
+    // Use the helper function instead of raw reset/enable
+    int16_t completed_left, completed_right;
+    get_steps_and_restart(&completed_left, &completed_right);
+    
+    // Update position based on this first part of alignment
+    update_position_from_steps(completed_left, completed_right, 'w');
+    sleep_msec(1000); // Small delay to ensure position is updated
+
+    // stepper_set_speed(60000, 60000); // Set speed for next part of alignment
+    // stepper_steps(100, 100);
+    // while(!stepper_steps_done()){
+    //     sleep_msec(1);
+    // }
+    // update_position_from_steps(100, -100, 'w');
+    // sleep_msec(1000); // Small delay to ensure position is updated
+
+    printf("[↺] Continuing left turn until IR_2R goes ON again...\n");
+    stepper_set_speed(65500, 65500);
+    stepper_steps(5000, -5000); // Continue left turn
+    while (1) {
+        double ir_r2 = adc_read_channel(IR_2R);
+        double ir_r1 = adc_read_channel(IR_1R);
+        double ir_r3 = adc_read_channel(IR_3R);
+        if (ir_r1 > THRESHOLD) {
+            printf("[✓] IR_1R is ON again (%.2fV > %.2f). Stopping turn. IRR1 WORKS\n", ir_r1, THRESHOLD);
+            break;
+        }
+        if (ir_r3 > THRESHOLD) {
+            printf("[✓] IR_3 is ON again (%.2fV > %.2f). R2 MISSED THE TAPE Stopping turn.\n", ir_r3, THRESHOLD);
+            break;
+        }
+        printf("\r[↺] IR_2R: %.2fV", ir_r2);
+        if (ir_r2 > THRESHOLD) {
+            printf("[✓] IR_2R is ON again (%.2fV > %.2f). Alignment complete.\n", ir_r2, THRESHOLD);
+            break;
+        }
+        sleep_msec(1);
+    }
+    
+    // Use the helper function again for the second part of alignment
+    get_steps_and_restart(&completed_left, &completed_right);
+    
+    // Update position based on this second part of alignment
+    update_position_from_steps(completed_left, completed_right, 'a');
+    
+    // Print final position after alignment
+    print_position_status("[🧭] After alignment");
+
+    printf("[✔] Line alignment completed.\n");
+}
+
+void detect_line() {
+    printf("\n Starting detect_line mode (coarse movement)...\n");
 
     stepper_reset();
     stepper_enable();
-    stepper_set_speed(20000, 20000);
 
-    int running = 1;
-    while (running) {
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        FD_SET(STDIN_FILENO, &readfds);
-        
-        struct timeval timeout = {0, 0};
-        if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) > 0) {
-            char c;
-            if (read(STDIN_FILENO, &c, 1) > 0) {
-                switch(c) {
-                    case 'w':
-                        printf("\r[↑] Moving forward %d steps...\n", manual_distance);
-                        stepper_steps(manual_distance, manual_distance);
-                        break;
-                    case 's':
-                        printf("\r[↓] Moving backward %d steps...\n", manual_distance);
-                        stepper_steps(-manual_distance, -manual_distance);
-                        break;
-                    case 'a':
-                        printf("\r[←] Turning left %d steps...\n", manual_distance);
-                        stepper_steps(manual_distance, -manual_distance);
-                        break;
-                    case 'd':
-                        printf("\r[→] Turning right %d steps...\n", manual_distance);
-                        stepper_steps(-manual_distance, manual_distance);
-                        break;
-                    case 'q':
-                        printf("\nExiting manual mode\n");
-                        running = 0;
-                        break;
-                }
+    const int FORWARD_STEPS = 20000;
+    const int TURN_STEPS = 625;  // ~90° calibrated
+
+    while (1) {
+        printf("\n[↑] Driving forward %d steps...\n", FORWARD_STEPS);
+        stepper_set_speed(30000, 30000);
+        stepper_steps(FORWARD_STEPS, FORWARD_STEPS);
+
+        char condition = 'x';  // Unknown until we check
+        while (!stepper_steps_done()) {
+            double ir_r1 = adc_read_channel(IR_1R);
+            double ir_r2 = adc_read_channel(IR_2R);
+            double ir_r3 = adc_read_channel(IR_3R);
+            double ir_l1 = adc_read_channel(IR_1L);
+            double ir_l2 = adc_read_channel(IR_2L);
+
+            if (ir_r2 > THRESHOLD) {
+                printf("[✓] IR_2R saw black — ready to align directly.\n");
+                condition = '2';  // Use single character
+                break;
+            } else if (ir_r3 > THRESHOLD) {
+                printf("[✓] IR_3R saw black — continue forward until R2 sees black.\n");
+                condition = '3';  // Use single character
+                break;
+            } else if (ir_l1 > LEFT_THRESHOLD || ir_l2 > LEFT_THRESHOLD || ir_r1 > THRESHOLD) {
+                printf("[✓] Left IR saw black — rotate left until R2 sees black.\n");
+                condition = 'l';
+                break;
             }
+
+            sleep_msec(50);
         }
-        sleep_msec(50);  // Small delay to prevent CPU hogging
+
+        int16_t completed_left, completed_right;
+        get_steps_and_restart(&completed_left, &completed_right);
+        
+        update_position_from_steps(completed_left, completed_right, 'w');
+        print_position_status("[🧭] After forward");
+
+        // === Handle logic branch ===
+        if (condition == '2') {  // R2 sensor detected black
+            align_line();
+            break;
+
+        } else if (condition == '3') {  // R3 sensor detected black
+            printf("[→] Driving forward until R2 sees black...\n");
+            while (1) {
+                stepper_set_speed(30000, 30000);
+                stepper_steps(FORWARD_STEPS, FORWARD_STEPS);
+
+                while (!stepper_steps_done()) {
+                    double ir_r2 = adc_read_channel(IR_2R);
+                    if (ir_r2 > THRESHOLD) {
+                        printf("[✓] IR_2R now on black. Proceeding to alignment.\n");
+                        goto forward_done;
+                    }
+                    sleep_msec(50);
+                }
+
+                get_steps_and_restart(&completed_left, &completed_right);
+                
+                update_position_from_steps(completed_left, completed_right, 'w');
+                print_position_status("[🧭] After extra forward");
+            }
+        forward_done:
+            get_steps_and_restart(&completed_left, &completed_right);
+            
+            align_line();
+            break;
+
+        } else if (condition == 'l') {
+            printf("[↺] Turning left until R2 sees black...\n");
+            stepper_set_speed(30000, 30000);
+            stepper_steps(TURN_STEPS * 4, -TURN_STEPS * 4);
+
+            while (!stepper_steps_done()) {
+                double ir_r2 = adc_read_channel(IR_2R);
+                if (ir_r2 > THRESHOLD) {
+                    printf("[✓] IR_2R now on black. Proceeding to alignment.\n");
+                    break;
+                }
+                sleep_msec(50);
+            }
+
+            get_steps_and_restart(&completed_left, &completed_right);
+            
+            update_position_from_steps(completed_left, completed_right, 'a');
+            print_position_status("[🧭] After left turn");
+
+            align_line();
+            break;
+        } else {
+            printf("[✗] No valid sensor condition met. Retrying...\n");
+        }
     }
 
-    tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
+    stepper_disable();
 }
+
+
+
 
 int main() {
     // Initialize the PYNQ library and stepper
     pynq_init();
     stepper_init();  // Single stepper initialization
+    adc_init();  // Initialize ADC for IR sensors
     pthread_t uart_thread;
     pthread_create(&uart_thread, NULL, uart_position_publisher, NULL);
 
@@ -620,30 +563,29 @@ int main() {
         printf("\nEnter command: ");
         scanf(" %c", &cmd);
 
-        switch (cmd) {
-            case 'i':
-                printf("Starting IR sensor readings (press 'q' to stop)...\n");
-                read_ir_sensors();
-                break;
-            
-            case 'f':
-                follow_line();
-                break;
-            
-            case 'd':
-                printf("Starting detect line mode...\n");
-                detect_line();
-                break;
-            
+        switch (cmd) {            
+            case 'a':
+            printf("Starting alignment mode...\n");
+                align_line();
+                break;                        
             case 'm':
                 manual_mode();
                 break;
-            
+            case 'i':
+                read_ir_sensors();
+                break;
+
             case 'q':
                 printf("Exiting program\n");
                 stepper_destroy();  // Single stepper cleanup
                 pynq_destroy();
                 return 0;
+            case 'c':
+                break;
+            case 'd':
+                printf("Starting detect line mode...\n");
+                detect_line();
+                break;
             
             default:
                 printf("Unknown command '%c'\n", cmd);
@@ -654,5 +596,7 @@ int main() {
     // Cleanup in case we break out of the loop
     stepper_destroy();
     pynq_destroy();
+    adc_destroy();
+
     return 0;
 }

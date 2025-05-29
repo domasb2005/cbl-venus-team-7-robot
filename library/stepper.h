@@ -102,7 +102,11 @@ extern void stepper_get_steps(int16_t *left, int16_t *right);
 extern bool stepper_steps_done(void);
 
 /**
- * @}
+ * Get the number of steps completed since the last stepper_steps() call.
+ * This is useful when you call stepper_reset() to stop movement early.
+ * @param left pointer to store completed left steps
+ * @param right pointer to store completed right steps
  */
+extern void stepper_get_completed_steps(int16_t *left, int16_t *right);
 
 #endif // STEPPER_H

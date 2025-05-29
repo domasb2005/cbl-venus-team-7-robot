@@ -29,6 +29,14 @@ SOFTWARE.
 static arm_shared stepper_handles;
 static volatile uint32_t *stepper_ptrs = NULL;
 
+// Add step tracking variables
+static int16_t requested_left_steps = 0;
+static int16_t requested_right_steps = 0;
+
+// Add absolute step tracking variables
+static uint16_t requested_left_abs = 0;
+static uint16_t requested_right_abs = 0;
+
 #define STEPPER_REG_CONFIG 0
 
 #define STEPPER_REG_STEPS 1
@@ -106,12 +114,38 @@ void stepper_destroy(void) {
   stepper_ptrs = NULL;
 }
 
+void stepper_steps(int16_t left, int16_t right) {
+  if (stepper_ptrs == NULL) {
+    pynq_error("STEPPER has not been initialized.\n");
+  }
+  
+  // Store the requested steps for tracking
+  requested_left_steps = left;
+  requested_right_steps = right;
+  requested_left_abs = abs(left);
+  requested_right_abs = abs(right);
+  
+  volatile steps *stp =
+      (volatile steps *)&(stepper_ptrs[STEPPER_REG_CUR_STEPS]);
+  steps now;
+  now.dir_r = (right < 0) ? 0 : 1;
+  now.dir_l = (left < 0) ? 0 : 1;
+  now.step_r = abs(right);
+  now.step_l = abs(left);
+
+  stp->val = now.val;
+}
+
 void stepper_reset() {
   if (stepper_ptrs == NULL) {
     pynq_error("STEPPER has not been initialized.\n");
   }
   // Set reset and lower enable pin
   stepper_ptrs[STEPPER_REG_CONFIG] = 0x2;
+  
+  // Reset step tracking when manually stopped
+  requested_left_steps = 0;
+  requested_right_steps = 0;
 }
 
 bool stepper_steps_done(void) {
@@ -127,21 +161,6 @@ bool stepper_steps_done(void) {
     return true;
   }
   return false;
-}
-
-void stepper_steps(int16_t left, int16_t right) {
-  if (stepper_ptrs == NULL) {
-    pynq_error("STEPPER has not been initialized.\n");
-  }
-  volatile steps *stp =
-      (volatile steps *)&(stepper_ptrs[STEPPER_REG_CUR_STEPS]);
-  steps now;
-  now.dir_r = (right < 0) ? 0 : 1;
-  now.dir_l = (left < 0) ? 0 : 1;
-  now.step_r = abs(right);
-  now.step_l = abs(left);
-
-  stp->val = now.val;
 }
 
 void stepper_set_speed(uint16_t left, uint16_t right) {
@@ -164,19 +183,39 @@ void stepper_get_steps(int16_t *left, int16_t *right) {
   if (stepper_ptrs == NULL) {
     pynq_error("STEPPER has not been initialized.\n");
   }
-  volatile steps *stp =
-      (volatile steps *)&(stepper_ptrs[STEPPER_REG_CUR_STEPS]);
+  // Reads the current hardware registers to get REMAINING steps
+  volatile steps *stp = (volatile steps *)&(stepper_ptrs[STEPPER_REG_CUR_STEPS]);
   volatile steps now;
   now.val = stp->val;
 
+  // Returns REMAINING steps with direction signs
   if (now.dir_l == 0) {
-    *left = now.step_l;
+    *left = now.step_l;     // Negative direction remaining steps
   } else {
-    *left = -now.step_l;
+    *left = -now.step_l;    // Positive direction remaining steps  
   }
   if (now.dir_r == 0) {
-    *right = -now.step_r;
+    *right = -now.step_r;   // Negative direction remaining steps
   } else {
-    *right = now.step_r;
+    *right = now.step_r;    // Positive direction remaining steps
   }
+}
+
+void stepper_get_completed_steps(int16_t *left, int16_t *right) {
+  if (stepper_ptrs == NULL) {
+    pynq_error("STEPPER has not been initialized.\n");
+  }
+  
+  // Get current remaining steps (raw from hardware)
+  volatile steps *stp = (volatile steps *)&(stepper_ptrs[STEPPER_REG_CUR_STEPS]);
+  volatile steps now;
+  now.val = stp->val;
+  
+  // Calculate completed steps = requested_abs - remaining_abs
+  uint16_t completed_left_abs = requested_left_abs - now.step_l;
+  uint16_t completed_right_abs = requested_right_abs - now.step_r;
+  
+  // Apply original direction
+  *left = (requested_left_steps < 0) ? -(int16_t)completed_left_abs : (int16_t)completed_left_abs;
+  *right = (requested_right_steps < 0) ? -(int16_t)completed_right_abs : (int16_t)completed_right_abs;
 }

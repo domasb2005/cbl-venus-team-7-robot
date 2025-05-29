@@ -1,7 +1,8 @@
 include ../shared.mk
 
 SOURCES:=$(wildcard *.c)
-# CFLAGS+=-Werror
+CFLAGS+=-Werror
+LDFLAGS+=-lmosquitto -lm
 
 include ../end.mk
 
